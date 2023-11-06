@@ -30,7 +30,7 @@ function NotFound() {
 
   return (
     <>
-      <Box display="flex" px={2.5} pt={2}>
+      <Box display="flex" px={2.5} pt={2} pb={5}>
         <Logo />
         <Box flexGrow={1} />
         <Box display="flex" alignItems="center" columnGap={1}>
@@ -39,7 +39,7 @@ function NotFound() {
         </Box>
       </Box>
 
-      <Stack justifyContent="center" alignItems="center" sx={{ height: 'calc(100% - 72px)' }}>
+      <Stack justifyContent="center" alignItems="center">
         <Container>
           <Typography variant="h2" mb={2.5}>
             Error 404
