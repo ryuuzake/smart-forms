@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,14 +16,12 @@
  */
 
 import {
-  getRegexValidation,
   getTextDisplayFlyover,
   getTextDisplayInstructions,
   getTextDisplayPrompt,
   getTextDisplayUnit
 } from '../utils/itemControl';
 import type { QuestionnaireItem } from 'fhir/r4';
-import type { RegexValidation } from '../interfaces/regex.interface';
 import { structuredDataCapture } from 'fhir-sdc-helpers';
 import { useMemo } from 'react';
 
@@ -35,9 +33,6 @@ interface RenderingExtensions {
   readOnly: boolean;
   entryFormat: string;
   required: boolean;
-  regexValidation: RegexValidation | null;
-  minLength: number | null;
-  maxLength: number | null;
 }
 
 function useRenderingExtensions(qItem: QuestionnaireItem): RenderingExtensions {
@@ -49,10 +44,7 @@ function useRenderingExtensions(qItem: QuestionnaireItem): RenderingExtensions {
       displayFlyover: getTextDisplayFlyover(qItem),
       readOnly: !!qItem.readOnly,
       entryFormat: structuredDataCapture.getEntryFormat(qItem) ?? '',
-      required: qItem.required ?? false,
-      regexValidation: getRegexValidation(qItem),
-      minLength: structuredDataCapture.getMinLength(qItem) ?? null,
-      maxLength: qItem.maxLength ?? null
+      required: qItem.required ?? false
     }),
     [qItem]
   );

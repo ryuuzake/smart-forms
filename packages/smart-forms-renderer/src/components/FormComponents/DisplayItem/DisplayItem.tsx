@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +20,7 @@ import type { QuestionnaireItem } from 'fhir/r4';
 import { FullWidthFormComponentBox } from '../../Box.styles';
 import { isSpecificItemControl } from '../../../utils';
 import LabelWrapper from '../ItemParts/ItemLabelWrapper';
+import { useQuestionnaireStore } from '../../../stores';
 
 interface DisplayItemProps {
   qItem: QuestionnaireItem;
@@ -28,13 +29,18 @@ interface DisplayItemProps {
 const DisplayItem = memo(function DisplayItem(props: DisplayItemProps) {
   const { qItem } = props;
 
+  const onFocusLinkId = useQuestionnaireStore.use.onFocusLinkId();
+
   const isContextDisplay = isSpecificItemControl(qItem, 'context-display');
   if (isContextDisplay) {
     return null;
   }
 
   return (
-    <FullWidthFormComponentBox>
+    <FullWidthFormComponentBox
+      data-test="q-item-display-box"
+      data-linkid={qItem.linkId}
+      onClick={() => onFocusLinkId(qItem.linkId)}>
       <LabelWrapper qItem={qItem} readOnly={false} />
     </FullWidthFormComponentBox>
   );

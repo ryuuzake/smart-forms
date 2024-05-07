@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,6 +32,7 @@ import { AUTOCOMPLETE_DEBOUNCE_DURATION } from '../../../utils/debounce';
 import useReadOnly from '../../../hooks/useReadOnly';
 import ChoiceAutocompleteField from './ChoiceAutocompleteField';
 import ItemFieldGrid from '../ItemParts/ItemFieldGrid';
+import { useQuestionnaireStore } from '../../../stores';
 
 interface ChoiceAutocompleteItemProps
   extends PropsWithQrItemChangeHandler,
@@ -45,6 +46,8 @@ interface ChoiceAutocompleteItemProps
 function ChoiceAutocompleteItem(props: ChoiceAutocompleteItemProps) {
   const { qItem, qrItem, isRepeated, isTabled, parentIsReadOnly, onQrItemChange } = props;
   const qrChoice = qrItem ?? createEmptyQrItem(qItem);
+
+  const onFocusLinkId = useQuestionnaireStore.use.onFocusLinkId();
 
   // Init input value
   let valueCoding: Coding | undefined;
@@ -101,7 +104,10 @@ function ChoiceAutocompleteItem(props: ChoiceAutocompleteItemProps) {
   }
 
   return (
-    <FullWidthFormComponentBox>
+    <FullWidthFormComponentBox
+      data-test="q-item-choice-autocomplete-box"
+      data-linkid={qItem.linkId}
+      onClick={() => onFocusLinkId(qItem.linkId)}>
       <ItemFieldGrid qItem={qItem} readOnly={readOnly}>
         <ChoiceAutocompleteField
           qItem={qItem}

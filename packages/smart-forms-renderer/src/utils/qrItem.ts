@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -90,9 +90,9 @@ export function updateQrItemsInGroup(
   questionnaireResponseOrQrItem: QuestionnaireResponseItem | QuestionnaireResponse,
   qItemsIndexMap: Record<string, number>
 ): void {
-  const qrItems = questionnaireResponseOrQrItem.item;
+  let qrItems = questionnaireResponseOrQrItem.item;
   if (!qrItems) {
-    return;
+    qrItems = [];
   }
 
   // Get actual sequence indexes of qrItems present within a qrGroup

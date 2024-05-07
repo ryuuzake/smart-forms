@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +33,7 @@ import { mapQItemsIndex } from '../../../utils/mapItem';
 import GridTable from './GridTable';
 import LabelWrapper from '../ItemParts/ItemLabelWrapper';
 import useReadOnly from '../../../hooks/useReadOnly';
+import { useQuestionnaireStore } from '../../../stores';
 
 interface GridGroupProps
   extends PropsWithQrItemChangeHandler,
@@ -46,6 +47,8 @@ interface GridGroupProps
 function GridGroup(props: GridGroupProps) {
   const { qItem, qrItem, groupCardElevation, showMinimalView, parentIsReadOnly, onQrItemChange } =
     props;
+
+  const onFocusLinkId = useQuestionnaireStore.use.onFocusLinkId();
 
   const qRowItems = qItem.item;
   const qrGroup = qrItem && qrItem.item ? qrItem : createEmptyQrGroup(qItem);
@@ -99,7 +102,12 @@ function GridGroup(props: GridGroupProps) {
   }
 
   return (
-    <QGroupContainerBox cardElevation={groupCardElevation} isRepeated={false} py={3}>
+    <QGroupContainerBox
+      cardElevation={groupCardElevation}
+      isRepeated={false}
+      py={3}
+      data-linkid={qItem.linkId}
+      onClick={() => onFocusLinkId(qItem.linkId)}>
       {qItem.text ? (
         <>
           <Typography

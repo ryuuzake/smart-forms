@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,10 +28,11 @@ import type { RendererSpinner } from '../../types/rendererSpinner.ts';
 interface RendererEmbeddedStandardActionsProps extends SpeedDialActionProps {
   spinner: RendererSpinner;
   onSpinnerChange: (newSpinner: RendererSpinner) => void;
+  onClose: () => void;
 }
 
 function RendererEmbeddedStandardActions(props: RendererEmbeddedStandardActionsProps) {
-  const { spinner, onSpinnerChange, ...speedDialActionProps } = props;
+  const { spinner, onSpinnerChange, onClose, ...speedDialActionProps } = props;
 
   const { smartClient } = useSmartClient();
 
@@ -44,8 +45,8 @@ function RendererEmbeddedStandardActions(props: RendererEmbeddedStandardActionsP
       <>
         <BackToQuestionnairesAction isSpeedDial={true} {...speedDialActionProps} />
         <PreviewAction isSpeedDial={true} {...speedDialActionProps} />
-        <SaveProgressAction isSpeedDial={true} {...speedDialActionProps} />
-        <SaveAsFinalAction isSpeedDial={true} {...speedDialActionProps} />
+        <SaveProgressAction isSpeedDial={true} onClose={onClose} {...speedDialActionProps} />
+        <SaveAsFinalAction isSpeedDial={true} onClose={onClose} {...speedDialActionProps} />
         <RepopulateAction
           spinner={spinner}
           onSpinnerChange={onSpinnerChange}

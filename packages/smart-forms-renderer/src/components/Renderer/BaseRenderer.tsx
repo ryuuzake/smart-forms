@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,34 +32,28 @@ function BaseRenderer() {
   const readOnly = useQuestionnaireStore.use.readOnly();
 
   const updatableResponse = useQuestionnaireResponseStore.use.updatableResponse();
-  const updateRequiredValidity = useQuestionnaireResponseStore.use.validateQuestionnaire();
+  const validateQuestionnaire = useQuestionnaireResponseStore.use.validateQuestionnaire();
   const updateResponse = useQuestionnaireResponseStore.use.updateResponse();
 
   const qItemsIndexMap = useMemo(() => mapQItemsIndex(sourceQuestionnaire), [sourceQuestionnaire]);
 
   function handleTopLevelQRItemSingleChange(newTopLevelQRItem: QuestionnaireResponseItem) {
     const updatedResponse: QuestionnaireResponse = cloneDeep(updatableResponse);
-    if (!updatedResponse.item || updatedResponse.item.length === 0) {
-      return;
-    }
 
     updateQrItemsInGroup(newTopLevelQRItem, null, updatedResponse, qItemsIndexMap);
 
     updateExpressions(updatedResponse);
-    updateRequiredValidity(sourceQuestionnaire, updatedResponse);
+    validateQuestionnaire(sourceQuestionnaire, updatedResponse);
     updateResponse(updatedResponse);
   }
 
   function handleTopLevelQRItemMultipleChange(newTopLevelQRItems: QrRepeatGroup) {
     const updatedResponse: QuestionnaireResponse = cloneDeep(updatableResponse);
-    if (!updatedResponse.item || updatedResponse.item.length === 0) {
-      return;
-    }
 
     updateQrItemsInGroup(null, newTopLevelQRItems, updatedResponse, qItemsIndexMap);
 
     updateExpressions(updatedResponse);
-    updateRequiredValidity(sourceQuestionnaire, updatedResponse);
+    validateQuestionnaire(sourceQuestionnaire, updatedResponse);
     updateResponse(updatedResponse);
   }
 

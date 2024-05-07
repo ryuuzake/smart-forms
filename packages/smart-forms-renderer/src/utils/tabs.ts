@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,17 +16,21 @@
  */
 
 import type { Tabs } from '../interfaces/tab.interface';
-import type { EnableWhenExpression, EnableWhenItems } from '../interfaces/enableWhen.interface';
+import type { EnableWhenExpressions, EnableWhenItems } from '../interfaces';
 import type { Coding, QuestionnaireItem } from 'fhir/r4';
 import { isSpecificItemControl } from './itemControl';
-import { isHidden, isHiddenByEnableWhens } from './qItem';
+import { isHiddenByEnableWhen } from './qItem';
 import { structuredDataCapture } from 'fhir-sdc-helpers';
 
 export function getFirstVisibleTab(
   tabs: Tabs,
   enableWhenItems: EnableWhenItems,
-  enableWhenExpressions: Record<string, EnableWhenExpression>
+  enableWhenExpressions: EnableWhenExpressions
 ) {
+  // Only singleEnableWhenItems are relevant for tab operations
+  const { singleItems } = enableWhenItems;
+  const { singleExpressions } = enableWhenExpressions;
+
   return Object.entries(tabs)
     .sort(([, tabA], [, tabB]) => tabA.tabIndex - tabB.tabIndex)
     .findIndex(([tabLinkId, tab]) => {
@@ -34,33 +38,17 @@ export function getFirstVisibleTab(
         return false;
       }
 
-      if (enableWhenItems[tabLinkId]) {
-        return enableWhenItems[tabLinkId].isEnabled;
+      if (singleItems[tabLinkId]) {
+        return singleItems[tabLinkId].isEnabled;
       }
 
-      if (enableWhenExpressions[tabLinkId]) {
-        return enableWhenExpressions[tabLinkId].isEnabled;
+      if (singleExpressions[tabLinkId]) {
+        return singleExpressions[tabLinkId].isEnabled;
       }
 
       return true;
     });
 }
-/*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
- * Organisation (CSIRO) ABN 41 687 119 230.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 /**
  * Checks if any of the items in a qItem array is a tabbed item
@@ -145,7 +133,7 @@ interface constructTabsWithVisibilityParams {
   tabs: Tabs;
   enableWhenIsActivated: boolean;
   enableWhenItems: EnableWhenItems;
-  enableWhenExpressions: Record<string, EnableWhenExpression>;
+  enableWhenExpressions: EnableWhenExpressions;
 }
 
 export function constructTabsWithVisibility(
@@ -154,7 +142,7 @@ export function constructTabsWithVisibility(
   const { tabs, enableWhenIsActivated, enableWhenItems, enableWhenExpressions } = params;
 
   return Object.entries(tabs).map(([linkId]) => {
-    const isVisible = !isHiddenByEnableWhens({
+    const isVisible = !isHiddenByEnableWhen({
       linkId,
       enableWhenIsActivated,
       enableWhenItems,
@@ -168,21 +156,28 @@ export function constructTabsWithVisibility(
   });
 }
 
-interface getNextVisibleTabIndexParams {
+interface getVisibleTabIndexParams {
+  direction: 'next' | 'previous';
   tabs: Tabs;
   currentTabIndex: number;
   enableWhenIsActivated: boolean;
   enableWhenItems: EnableWhenItems;
-  enableWhenExpressions: Record<string, EnableWhenExpression>;
+  enableWhenExpressions: EnableWhenExpressions;
 }
 /**
  * Get index of next visible tab
  *
  * @author Sean Fong
  */
-export function getNextVisibleTabIndex(params: getNextVisibleTabIndexParams): number {
-  const { tabs, currentTabIndex, enableWhenIsActivated, enableWhenItems, enableWhenExpressions } =
-    params;
+export function getVisibleTabIndex(params: getVisibleTabIndexParams): number {
+  const {
+    direction,
+    tabs,
+    currentTabIndex,
+    enableWhenIsActivated,
+    enableWhenItems,
+    enableWhenExpressions
+  } = params;
 
   const tabsWithVisibility = constructTabsWithVisibility({
     tabs,
@@ -191,16 +186,28 @@ export function getNextVisibleTabIndex(params: getNextVisibleTabIndexParams): nu
     enableWhenExpressions
   });
 
-  let nextTabIndex = currentTabIndex + 1;
-  const nextTabIndexIsVisible = false;
-  while (!nextTabIndexIsVisible) {
-    if (tabsWithVisibility[nextTabIndex].isVisible) {
-      return nextTabIndex;
+  let visibleTabIndex;
+  if (direction === 'next') {
+    visibleTabIndex = currentTabIndex + 1;
+    const nextTabIndexIsVisible = false;
+    while (!nextTabIndexIsVisible) {
+      if (tabsWithVisibility[visibleTabIndex].isVisible) {
+        return visibleTabIndex;
+      }
+      visibleTabIndex++;
     }
-    nextTabIndex++;
+  } else {
+    visibleTabIndex = currentTabIndex - 1;
+    const previousTabIndexIsVisible = false;
+    while (!previousTabIndexIsVisible) {
+      if (tabsWithVisibility[visibleTabIndex].isVisible) {
+        return visibleTabIndex;
+      }
+      visibleTabIndex--;
+    }
   }
 
-  return nextTabIndex;
+  return visibleTabIndex;
 }
 
 /**
@@ -213,7 +220,7 @@ export function findNumOfVisibleTabs(
   tabs: Tabs,
   enableWhenIsActivated: boolean,
   enableWhenItems: EnableWhenItems,
-  enableWhenExpressions: Record<string, EnableWhenExpression>
+  enableWhenExpressions: EnableWhenExpressions
 ): number {
   const tabsWithVisibility = constructTabsWithVisibility({
     tabs,
@@ -241,7 +248,7 @@ interface IsTabHiddenParams {
   isTab: boolean;
   enableWhenIsActivated: boolean;
   enableWhenItems: EnableWhenItems;
-  enableWhenExpressions: Record<string, EnableWhenExpression>;
+  enableWhenExpressions: EnableWhenExpressions;
   completedTabsCollapsed: boolean;
 }
 
@@ -258,12 +265,13 @@ export function isTabHidden(params: IsTabHiddenParams): boolean {
 
   if (
     !isTab ||
-    isHidden({
-      questionnaireItem: qItem,
+    isHiddenByEnableWhen({
+      linkId: qItem.linkId,
       enableWhenIsActivated,
       enableWhenItems,
       enableWhenExpressions
-    })
+    }) ||
+    structuredDataCapture.getHidden(qItem)
   ) {
     return true;
   }
@@ -272,15 +280,17 @@ export function isTabHidden(params: IsTabHiddenParams): boolean {
     const completedDisplayItem = contextDisplayItems.find(
       (contextDisplayItem) => contextDisplayItem.text === 'Complete'
     );
-    if (
-      completedDisplayItem &&
-      !isHidden({
-        questionnaireItem: completedDisplayItem,
-        enableWhenIsActivated,
-        enableWhenItems,
-        enableWhenExpressions
-      })
-    ) {
+    const isHidden =
+      (completedDisplayItem &&
+        isHiddenByEnableWhen({
+          linkId: completedDisplayItem.linkId,
+          enableWhenIsActivated,
+          enableWhenItems,
+          enableWhenExpressions
+        })) ||
+      structuredDataCapture.getHidden(completedDisplayItem);
+
+    if (!isHidden) {
       return true;
     }
   }

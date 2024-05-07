@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,7 @@ import type {
   PropsWithIsRepeatedAttribute,
   PropsWithIsTabledAttribute,
   PropsWithParentIsReadOnlyAttribute,
+  PropsWithParentIsRepeatGroupAttribute,
   PropsWithQrItemChangeHandler,
   PropsWithShowMinimalViewAttribute
 } from '../../../interfaces/renderProps.interface';
@@ -35,7 +36,8 @@ interface SingleItemProps
     PropsWithIsRepeatedAttribute,
     PropsWithIsTabledAttribute,
     PropsWithShowMinimalViewAttribute,
-    PropsWithParentIsReadOnlyAttribute {
+    PropsWithParentIsReadOnlyAttribute,
+    PropsWithParentIsRepeatGroupAttribute {
   qItem: QuestionnaireItem;
   qrItem: QuestionnaireResponseItem | null;
   groupCardElevation: number;
@@ -50,6 +52,8 @@ function SingleItem(props: SingleItemProps) {
     groupCardElevation,
     showMinimalView,
     parentIsReadOnly,
+    parentIsRepeatGroup,
+    parentRepeatGroupIndex,
     onQrItemChange
   } = props;
 
@@ -57,9 +61,11 @@ function SingleItem(props: SingleItemProps) {
 
   const handleQrItemChange = useCallback(
     (newQrItem: QuestionnaireResponseItem) => {
-      if (newQrItem.answer) {
-        updateEnableWhenItem(qItem.linkId, newQrItem.answer);
-      }
+      updateEnableWhenItem(
+        qItem.linkId,
+        newQrItem.answer,
+        parentIsRepeatGroup ? parentRepeatGroupIndex ?? null : null
+      );
 
       if (qrItem && qrItem.item && qrItem.item.length > 0) {
         onQrItemChange({ ...newQrItem, item: qrItem.item });
@@ -67,20 +73,28 @@ function SingleItem(props: SingleItemProps) {
         onQrItemChange(newQrItem);
       }
     },
-    [updateEnableWhenItem, qItem.linkId, qrItem, onQrItemChange]
+    [
+      qrItem,
+      updateEnableWhenItem,
+      qItem.linkId,
+      parentIsRepeatGroup,
+      parentRepeatGroupIndex,
+      onQrItemChange
+    ]
   );
 
   const handleQrItemChangeWithNestedItems = useCallback(
     (newQrItem: QuestionnaireResponseItem) => {
-      onQrItemChange(newQrItem);
+      const updatedQrItem = qrItem ? { ...qrItem, item: newQrItem.item } : newQrItem;
+      onQrItemChange(updatedQrItem);
     },
-    [onQrItemChange]
+    [qrItem, onQrItemChange]
   );
 
   const qItemHasNestedItems = !!qItem.item && qItem.item.length > 0;
 
   const readOnly = useReadOnly(qItem, parentIsReadOnly);
-  const itemIsHidden = useHidden(qItem);
+  const itemIsHidden = useHidden(qItem, parentRepeatGroupIndex);
   if (itemIsHidden) {
     return null;
   }

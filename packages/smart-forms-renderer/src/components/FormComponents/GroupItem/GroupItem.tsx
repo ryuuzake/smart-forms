@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +23,7 @@ import { QGroupContainerBox } from '../../Box.styles';
 import type {
   PropsWithIsRepeatedAttribute,
   PropsWithParentIsReadOnlyAttribute,
+  PropsWithParentIsRepeatGroupAttribute,
   PropsWithQrItemChangeHandler
 } from '../../../interfaces/renderProps.interface';
 import type { QrRepeatGroup } from '../../../interfaces/repeatGroup.interface';
@@ -30,14 +31,15 @@ import useHidden from '../../../hooks/useHidden';
 import type { Tabs } from '../../../interfaces/tab.interface';
 import GroupHeading from './GroupHeading';
 import { GroupCard } from './GroupItem.styles';
-import NextTabButtonWrapper from './NextTabButtonWrapper';
+import TabButtonsWrapper from './TabButtonsWrapper';
 import GroupItemSwitcher from './GroupItemSwitcher';
 import useReadOnly from '../../../hooks/useReadOnly';
 
 interface GroupItemProps
   extends PropsWithQrItemChangeHandler,
     PropsWithIsRepeatedAttribute,
-    PropsWithParentIsReadOnlyAttribute {
+    PropsWithParentIsReadOnlyAttribute,
+    PropsWithParentIsRepeatGroupAttribute {
   qItem: QuestionnaireItem;
   qrItem: QuestionnaireResponseItem | null;
   groupCardElevation: number;
@@ -56,13 +58,15 @@ function GroupItem(props: GroupItemProps) {
     tabs,
     currentTabIndex,
     parentIsReadOnly,
+    parentIsRepeatGroup,
+    parentRepeatGroupIndex,
     onQrItemChange
   } = props;
 
   const qItemsIndexMap = useMemo(() => mapQItemsIndex(qItem), [qItem]);
 
   const readOnly = useReadOnly(qItem, parentIsReadOnly);
-  const itemIsHidden = useHidden(qItem);
+  const itemIsHidden = useHidden(qItem, parentRepeatGroupIndex);
   if (itemIsHidden) {
     return null;
   }
@@ -113,6 +117,8 @@ function GroupItem(props: GroupItemProps) {
               qrItemOrItems={qrItemOrItems}
               groupCardElevation={groupCardElevation}
               parentIsReadOnly={readOnly}
+              parentIsRepeatGroup={parentIsRepeatGroup}
+              parentRepeatGroupIndex={parentRepeatGroupIndex}
               onQrItemChange={handleQrItemChange}
               onQrRepeatGroupChange={handleQrRepeatGroupChange}
             />
@@ -120,7 +126,7 @@ function GroupItem(props: GroupItemProps) {
         })}
 
         {/* Next tab button at the end of each tab group */}
-        <NextTabButtonWrapper currentTabIndex={currentTabIndex} tabs={tabs} />
+        <TabButtonsWrapper currentTabIndex={currentTabIndex} tabs={tabs} />
       </GroupCard>
     </QGroupContainerBox>
   );

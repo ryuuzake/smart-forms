@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,6 +33,7 @@ import useStringCalculatedExpression from '../../../hooks/useStringCalculatedExp
 import ItemFieldGrid from '../ItemParts/ItemFieldGrid';
 import useStringInput from '../../../hooks/useStringInput';
 import useReadOnly from '../../../hooks/useReadOnly';
+import { useQuestionnaireStore } from '../../../stores';
 
 interface TextItemProps
   extends PropsWithQrItemChangeHandler,
@@ -45,9 +46,10 @@ interface TextItemProps
 function TextItem(props: TextItemProps) {
   const { qItem, qrItem, isRepeated, parentIsReadOnly, onQrItemChange } = props;
 
+  const onFocusLinkId = useQuestionnaireStore.use.onFocusLinkId();
+
   const readOnly = useReadOnly(qItem, parentIsReadOnly);
-  const { displayUnit, displayPrompt, entryFormat, regexValidation, minLength, maxLength } =
-    useRenderingExtensions(qItem);
+  const { displayUnit, displayPrompt, entryFormat } = useRenderingExtensions(qItem);
 
   // Init input value
   let valueText = '';
@@ -57,16 +59,23 @@ function TextItem(props: TextItemProps) {
   const [input, setInput] = useStringInput(valueText);
 
   // Perform validation checks
-  const feedback = useValidationFeedback(input, regexValidation, minLength, maxLength);
+  const feedback = useValidationFeedback(qItem, input);
 
   // Process calculated expressions
   const { calcExpUpdated } = useStringCalculatedExpression({
     qItem: qItem,
     inputValue: input,
-    setInputValue: (value) => {
-      setInput(value);
+    onChangeByCalcExpressionString: (newValueString: string) => {
+      setInput(newValueString);
+      onQrItemChange({
+        ...createEmptyQrItem(qItem),
+        answer: [{ valueString: newValueString }]
+      });
     },
-    onQrItemChange: onQrItemChange
+    onChangeByCalcExpressionNull: () => {
+      setInput('');
+      onQrItemChange(createEmptyQrItem(qItem));
+    }
   });
 
   // Event handlers
@@ -104,7 +113,10 @@ function TextItem(props: TextItemProps) {
     );
   }
   return (
-    <FullWidthFormComponentBox data-test="q-item-text-box">
+    <FullWidthFormComponentBox
+      data-test="q-item-text-box"
+      data-linkid={qItem.linkId}
+      onClick={() => onFocusLinkId(qItem.linkId)}>
       <ItemFieldGrid qItem={qItem} readOnly={readOnly}>
         <TextField
           linkId={qItem.linkId}

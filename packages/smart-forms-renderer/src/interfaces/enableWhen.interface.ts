@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,20 +21,49 @@ import type {
   QuestionnaireResponseItemAnswer
 } from 'fhir/r4';
 
-export interface EnableWhenExpression {
+export interface EnableWhenExpressions {
+  singleExpressions: Record<string, EnableWhenSingleExpression>;
+  repeatExpressions: Record<string, EnableWhenRepeatExpression>;
+}
+
+export interface EnableWhenSingleExpression {
   expression: string;
   isEnabled?: boolean;
 }
 
-export type EnableWhenItems = Record<string, EnableWhenItemProperties>;
+export interface EnableWhenRepeatExpression {
+  expression: string;
+  parentLinkId: string;
+  enabledIndexes: boolean[];
+}
 
-export interface EnableWhenItemProperties {
-  linked: EnableWhenLinkedItem[];
+export interface EnableWhenItems {
+  singleItems: Record<string, EnableWhenSingleItemProperties>;
+  repeatItems: Record<string, EnableWhenRepeatItemProperties>;
+}
+
+export interface EnableWhenSingleItemProperties {
+  linked: EnableWhenSingleLinkedItem[];
   isEnabled: boolean;
   enableBehavior?: QuestionnaireItem['enableBehavior'];
 }
 
-export interface EnableWhenLinkedItem {
+export interface EnableWhenRepeatItemProperties {
+  linked: EnableWhenRepeatLinkedItem[];
+  parentLinkId: string;
+  enabledIndexes: boolean[];
+  enableBehavior?: QuestionnaireItem['enableBehavior'];
+}
+
+// For non-repeat groups
+export interface EnableWhenSingleLinkedItem {
   enableWhen: QuestionnaireItemEnableWhen;
   answer?: QuestionnaireResponseItemAnswer[];
+}
+
+// For repeat groups
+export interface EnableWhenRepeatLinkedItem {
+  enableWhen: QuestionnaireItemEnableWhen;
+  parentLinkId: string;
+  answers: QuestionnaireResponseItemAnswer[];
 }

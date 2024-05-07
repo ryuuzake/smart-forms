@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,8 +26,8 @@ import _isEqual from 'lodash/isEqual';
 import { containsTabs, isTabContainer } from './tabs';
 import { getShortText, isSpecificItemControl } from './itemControl';
 import { getQrItemsIndex, mapQItemsIndex } from './mapItem';
-import type { EnableWhenExpression, EnableWhenItems } from '../interfaces/enableWhen.interface';
-import { isHidden } from './qItem';
+import type { EnableWhenExpressions, EnableWhenItems } from '../interfaces';
+import { isHiddenByEnableWhen } from './qItem';
 
 export interface ItemToRepopulate {
   qItem: QuestionnaireItem | null;
@@ -49,7 +49,7 @@ interface getItemsToRepopulateParams {
   updatableResponse: QuestionnaireResponse;
   enableWhenIsActivated: boolean;
   enableWhenItems: EnableWhenItems;
-  enableWhenExpressions: Record<string, EnableWhenExpression>;
+  enableWhenExpressions: EnableWhenExpressions;
 }
 
 export function getItemsToRepopulate(
@@ -135,7 +135,7 @@ interface getItemsToRepopulateRecursiveParams {
   itemsToRepopulate: Record<string, ItemToRepopulate>;
   enableWhenIsActivated: boolean;
   enableWhenItems: EnableWhenItems;
-  enableWhenExpressions: Record<string, EnableWhenExpression>;
+  enableWhenExpressions: EnableWhenExpressions;
 }
 
 // 1. Get items to repopulate (only new items)
@@ -162,8 +162,8 @@ function getItemsToRepopulateRecursive(params: getItemsToRepopulateRecursivePara
 
   // Return nothing if corresponding qItem is hidden
   if (
-    isHidden({
-      questionnaireItem: qItem,
+    isHiddenByEnableWhen({
+      linkId: qItem.linkId,
       enableWhenIsActivated,
       enableWhenItems,
       enableWhenExpressions
@@ -278,7 +278,7 @@ interface getGridTableToRepopulateParams {
   itemsToRepopulate: Record<string, ItemToRepopulate>;
   enableWhenIsActivated: boolean;
   enableWhenItems: EnableWhenItems;
-  enableWhenExpressions: Record<string, EnableWhenExpression>;
+  enableWhenExpressions: EnableWhenExpressions;
 }
 
 function getGridTableToRepopulate(params: getGridTableToRepopulateParams) {
@@ -300,8 +300,8 @@ function getGridTableToRepopulate(params: getGridTableToRepopulateParams) {
   const gridChildQRItemsToRepopulate = gridChildQItems
     .map((qItem, index) => {
       if (
-        isHidden({
-          questionnaireItem: qItem,
+        isHiddenByEnableWhen({
+          linkId: qItem.linkId,
           enableWhenIsActivated,
           enableWhenItems,
           enableWhenExpressions

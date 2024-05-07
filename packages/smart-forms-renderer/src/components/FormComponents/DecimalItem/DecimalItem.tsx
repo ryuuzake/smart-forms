@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,6 +39,7 @@ import { getDecimalPrecision } from '../../../utils/itemControl';
 import useDecimalCalculatedExpression from '../../../hooks/useDecimalCalculatedExpression';
 import useStringInput from '../../../hooks/useStringInput';
 import useReadOnly from '../../../hooks/useReadOnly';
+import { useQuestionnaireStore } from '../../../stores';
 
 interface DecimalItemProps
   extends PropsWithQrItemChangeHandler,
@@ -52,14 +53,15 @@ interface DecimalItemProps
 function DecimalItem(props: DecimalItemProps) {
   const { qItem, qrItem, isRepeated, isTabled, parentIsReadOnly, onQrItemChange } = props;
 
+  const onFocusLinkId = useQuestionnaireStore.use.onFocusLinkId();
+
   const readOnly = useReadOnly(qItem, parentIsReadOnly);
   const precision = getDecimalPrecision(qItem);
-  const { displayUnit, displayPrompt, entryFormat, regexValidation, minLength, maxLength } =
-    useRenderingExtensions(qItem);
+  const { displayUnit, displayPrompt, entryFormat } = useRenderingExtensions(qItem);
 
   // Init input value
   let valueDecimal = 0.0;
-  let initialInput = '0';
+  let initialInput = '';
   if (qrItem?.answer) {
     if (qrItem?.answer[0].valueDecimal) {
       valueDecimal = qrItem.answer[0].valueDecimal;
@@ -74,17 +76,28 @@ function DecimalItem(props: DecimalItemProps) {
   const [input, setInput] = useStringInput(initialInput);
 
   // Perform validation checks
-  const feedback = useValidationFeedback(input, regexValidation, minLength, maxLength);
+  const feedback = useValidationFeedback(qItem, input);
 
   // Process calculated expressions
   const { calcExpUpdated } = useDecimalCalculatedExpression({
     qItem: qItem,
     inputValue: input,
     precision: precision,
-    setInputValue: (newInput) => {
-      setInput(newInput);
+    onChangeByCalcExpressionDecimal: (newValueDecimal: number) => {
+      setInput(
+        typeof precision === 'number'
+          ? newValueDecimal.toFixed(precision)
+          : newValueDecimal.toString()
+      );
+      onQrItemChange({
+        ...createEmptyQrItem(qItem),
+        answer: [{ valueInteger: newValueDecimal }]
+      });
     },
-    onQrItemChange: onQrItemChange
+    onChangeByCalcExpressionNull: () => {
+      setInput('');
+      onQrItemChange(createEmptyQrItem(qItem));
+    }
   });
 
   // Event handlers
@@ -98,12 +111,16 @@ function DecimalItem(props: DecimalItemProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateQrItemWithDebounce = useCallback(
     debounce((parsedNewInput: string) => {
-      onQrItemChange({
-        ...createEmptyQrItem(qItem),
-        answer: precision
-          ? [{ valueDecimal: parseDecimalStringToFloat(parsedNewInput, precision) }]
-          : [{ valueDecimal: parseFloat(parsedNewInput) }]
-      });
+      if (parsedNewInput === '') {
+        onQrItemChange(createEmptyQrItem(qItem));
+      } else {
+        onQrItemChange({
+          ...createEmptyQrItem(qItem),
+          answer: precision
+            ? [{ valueDecimal: parseDecimalStringToFloat(parsedNewInput, precision) }]
+            : [{ valueDecimal: parseFloat(parsedNewInput) }]
+        });
+      }
     }, DEBOUNCE_DURATION),
     [onQrItemChange, qItem, displayUnit, precision]
   ); // Dependencies are tested, debounce is causing eslint to not recognise dependencies
@@ -126,7 +143,10 @@ function DecimalItem(props: DecimalItemProps) {
   }
 
   return (
-    <FullWidthFormComponentBox data-test="q-item-decimal-box">
+    <FullWidthFormComponentBox
+      data-test="q-item-decimal-box"
+      data-linkid={qItem.linkId}
+      onClick={() => onFocusLinkId(qItem.linkId)}>
       <ItemFieldGrid qItem={qItem} readOnly={readOnly}>
         <DecimalField
           linkId={qItem.linkId}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,6 +37,7 @@ import type {
 import type { GroupTableRowModel } from '../../../interfaces/groupTable.interface';
 import GroupTableBody from './GroupTableBody';
 import Checkbox from '@mui/material/Checkbox';
+import { useQuestionnaireStore } from '../../../stores';
 
 interface GroupTableViewProps
   extends PropsWithShowMinimalViewAttribute,
@@ -75,6 +76,8 @@ function GroupTableView(props: GroupTableViewProps) {
     onReorderRows
   } = props;
 
+  const onFocusLinkId = useQuestionnaireStore.use.onFocusLinkId();
+
   if (showMinimalView) {
     return (
       <QGroupContainerBox cardElevation={groupCardElevation} isRepeated={false} py={1}>
@@ -112,7 +115,12 @@ function GroupTableView(props: GroupTableViewProps) {
   }
 
   return (
-    <QGroupContainerBox cardElevation={groupCardElevation} isRepeated={false} py={3}>
+    <QGroupContainerBox
+      cardElevation={groupCardElevation}
+      isRepeated={false}
+      py={3}
+      data-linkid={qItem.linkId}
+      onClick={() => onFocusLinkId(qItem.linkId)}>
       {groupCardElevation !== 1 ? (
         <>
           <Typography

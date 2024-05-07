@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,33 +15,37 @@
  * limitations under the License.
  */
 
-import React from 'react';
-import type { ChoiceItemOrientation } from '../../../interfaces/choice.enum';
+import React, { useMemo } from 'react';
 import type { QuestionnaireItem, QuestionnaireResponseItem } from 'fhir/r4';
-import { findInAnswerValueSetCodings } from '../../../utils/choice';
+import { convertCodingsToAnswerOptions, findInAnswerOptions } from '../../../utils/choice';
 import { createEmptyQrItem } from '../../../utils/qrItem';
 import { FullWidthFormComponentBox } from '../../Box.styles';
 import useValueSetCodings from '../../../hooks/useValueSetCodings';
 import type {
   PropsWithIsRepeatedAttribute,
+  PropsWithIsTabledAttribute,
   PropsWithParentIsReadOnlyAttribute,
   PropsWithQrItemChangeHandler
 } from '../../../interfaces/renderProps.interface';
 import ChoiceRadioAnswerValueSetFields from './ChoiceRadioAnswerValueSetFields';
 import useReadOnly from '../../../hooks/useReadOnly';
 import ItemFieldGrid from '../ItemParts/ItemFieldGrid';
+import { useQuestionnaireStore } from '../../../stores';
+import useCodingCalculatedExpression from '../../../hooks/useCodingCalculatedExpression';
 
 interface ChoiceRadioAnswerValueSetItemProps
   extends PropsWithQrItemChangeHandler,
     PropsWithIsRepeatedAttribute,
+    PropsWithIsTabledAttribute,
     PropsWithParentIsReadOnlyAttribute {
   qItem: QuestionnaireItem;
   qrItem: QuestionnaireResponseItem | null;
-  orientation: ChoiceItemOrientation;
 }
 
 function ChoiceRadioAnswerValueSetItem(props: ChoiceRadioAnswerValueSetItemProps) {
-  const { qItem, qrItem, orientation, isRepeated, parentIsReadOnly, onQrItemChange } = props;
+  const { qItem, qrItem, isRepeated, isTabled, parentIsReadOnly, onQrItemChange } = props;
+
+  const onFocusLinkId = useQuestionnaireStore.use.onFocusLinkId();
 
   const readOnly = useReadOnly(qItem, parentIsReadOnly);
 
@@ -56,15 +60,25 @@ function ChoiceRadioAnswerValueSetItem(props: ChoiceRadioAnswerValueSetItemProps
   // Get codings/options from valueSet
   const { codings, terminologyError } = useValueSetCodings(qItem);
 
+  const answerOptions = useMemo(() => convertCodingsToAnswerOptions(codings), [codings]);
+
+  const { calcExpUpdated } = useCodingCalculatedExpression({
+    qItem: qItem,
+    valueInString: valueRadio ?? '',
+    onChangeByCalcExpressionString: (newValueString: string) => {
+      handleChange(newValueString);
+    },
+    onChangeByCalcExpressionNull: () => {
+      onQrItemChange(createEmptyQrItem(qItem));
+    }
+  });
+
   function handleChange(newValue: string) {
     if (codings.length > 0) {
-      const qrAnswer = findInAnswerValueSetCodings(codings, newValue);
-      if (qrAnswer) {
-        onQrItemChange({
-          ...createEmptyQrItem(qItem),
-          answer: [{ valueCoding: qrAnswer }]
-        });
-      }
+      const qrAnswer = findInAnswerOptions(answerOptions, newValue);
+      onQrItemChange(
+        qrAnswer ? { ...createEmptyQrItem(qItem), answer: [qrAnswer] } : createEmptyQrItem(qItem)
+      );
     }
   }
 
@@ -74,24 +88,29 @@ function ChoiceRadioAnswerValueSetItem(props: ChoiceRadioAnswerValueSetItemProps
         qItem={qItem}
         codings={codings}
         valueRadio={valueRadio}
-        orientation={orientation}
         readOnly={readOnly}
+        calcExpUpdated={calcExpUpdated}
         terminologyError={terminologyError}
+        isTabled={isTabled}
         onCheckedChange={handleChange}
       />
     );
   }
 
   return (
-    <FullWidthFormComponentBox data-test="q-item-choice-radio-answer-value-set-box">
+    <FullWidthFormComponentBox
+      data-test="q-item-choice-radio-answer-value-set-box"
+      data-linkid={qItem.linkId}
+      onClick={() => onFocusLinkId(qItem.linkId)}>
       <ItemFieldGrid qItem={qItem} readOnly={readOnly}>
         <ChoiceRadioAnswerValueSetFields
           qItem={qItem}
           codings={codings}
           valueRadio={valueRadio}
-          orientation={orientation}
           readOnly={readOnly}
+          calcExpUpdated={calcExpUpdated}
           terminologyError={terminologyError}
+          isTabled={isTabled}
           onCheckedChange={handleChange}
         />
       </ItemFieldGrid>

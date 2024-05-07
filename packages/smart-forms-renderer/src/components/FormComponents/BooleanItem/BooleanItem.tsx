@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +29,8 @@ import ItemFieldGrid from '../ItemParts/ItemFieldGrid';
 import BooleanField from './BooleanField';
 import Box from '@mui/material/Box';
 import useReadOnly from '../../../hooks/useReadOnly';
+import { useQuestionnaireStore } from '../../../stores';
+import useBooleanCalculatedExpression from '../../../hooks/useBooleanCalculatedExpression';
 
 interface BooleanItemProps
   extends PropsWithQrItemChangeHandler,
@@ -42,39 +44,96 @@ interface BooleanItemProps
 function BooleanItem(props: BooleanItemProps) {
   const { qItem, qrItem, isRepeated, isTabled, parentIsReadOnly, onQrItemChange } = props;
 
+  const onFocusLinkId = useQuestionnaireStore.use.onFocusLinkId();
+
   const readOnly = useReadOnly(qItem, parentIsReadOnly);
 
-  // Init input value
-  let checked = false;
-  if (qrItem?.answer && qrItem.answer[0].valueBoolean) {
-    checked = qrItem.answer[0].valueBoolean;
-  }
+  const valueBoolean = qrItem?.answer && qrItem.answer[0].valueBoolean;
+
+  // Process calculated expressions
+  const { calcExpUpdated } = useBooleanCalculatedExpression({
+    qItem: qItem,
+    booleanValue: valueBoolean,
+    onChangeByCalcExpressionBoolean: (newValueBoolean: boolean) => {
+      onQrItemChange({
+        ...createEmptyQrItem(qItem),
+        answer: [{ valueBoolean: newValueBoolean }]
+      });
+    },
+    onChangeByCalcExpressionNull: () => {
+      onQrItemChange(createEmptyQrItem(qItem));
+    }
+  });
 
   // Event handlers
-  function handleCheckedChange(newChecked: boolean) {
-    onQrItemChange({
-      ...createEmptyQrItem(qItem),
-      answer: [{ valueBoolean: newChecked }]
-    });
+  function handleValueChange(newValue: string) {
+    switch (newValue) {
+      case 'true':
+        onQrItemChange({
+          ...createEmptyQrItem(qItem),
+          answer: [{ valueBoolean: true }]
+        });
+        break;
+      case 'false':
+        onQrItemChange({
+          ...createEmptyQrItem(qItem),
+          answer: [{ valueBoolean: false }]
+        });
+        break;
+      default:
+        onQrItemChange(createEmptyQrItem(qItem));
+        break;
+    }
+  }
+
+  function handleClear() {
+    onQrItemChange(createEmptyQrItem(qItem));
   }
 
   if (isTabled) {
     return (
       <Box display="flex" justifyContent="center">
-        <BooleanField checked={checked} readOnly={readOnly} onCheckedChange={handleCheckedChange} />
+        <BooleanField
+          qItem={qItem}
+          readOnly={readOnly}
+          isTabled={isTabled}
+          valueBoolean={valueBoolean}
+          calcExpUpdated={calcExpUpdated}
+          onCheckedChange={handleValueChange}
+          onClear={handleClear}
+        />
       </Box>
     );
   }
 
   if (isRepeated) {
     return (
-      <BooleanField checked={checked} readOnly={readOnly} onCheckedChange={handleCheckedChange} />
+      <BooleanField
+        qItem={qItem}
+        readOnly={readOnly}
+        isTabled={isTabled}
+        valueBoolean={valueBoolean}
+        calcExpUpdated={calcExpUpdated}
+        onCheckedChange={handleValueChange}
+        onClear={handleClear}
+      />
     );
   }
   return (
-    <FullWidthFormComponentBox data-test="q-item-boolean-box">
+    <FullWidthFormComponentBox
+      data-test="q-item-boolean-box"
+      data-linkid={qItem.linkId}
+      onClick={() => onFocusLinkId(qItem.linkId)}>
       <ItemFieldGrid qItem={qItem} readOnly={readOnly}>
-        <BooleanField checked={checked} readOnly={readOnly} onCheckedChange={handleCheckedChange} />
+        <BooleanField
+          qItem={qItem}
+          readOnly={readOnly}
+          isTabled={isTabled}
+          valueBoolean={valueBoolean}
+          calcExpUpdated={calcExpUpdated}
+          onCheckedChange={handleValueChange}
+          onClear={handleClear}
+        />
       </ItemFieldGrid>
     </FullWidthFormComponentBox>
   );

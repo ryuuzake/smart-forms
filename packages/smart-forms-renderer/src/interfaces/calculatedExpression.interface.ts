@@ -1,4 +1,5 @@
 export interface CalculatedExpression {
   expression: string;
-  value?: number | string | object;
+  from: 'item' | 'item._text';
+  value?: number | string | boolean | object | null;
 }

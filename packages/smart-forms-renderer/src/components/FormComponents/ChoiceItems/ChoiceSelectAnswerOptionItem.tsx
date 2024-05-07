@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,17 +20,18 @@ import React from 'react';
 import type { QuestionnaireItem, QuestionnaireResponseItem } from 'fhir/r4';
 import { findInAnswerOptions, getQrChoiceValue } from '../../../utils/choice';
 import { createEmptyQrItem } from '../../../utils/qrItem';
-import { FullWidthFormComponentBox } from '../../Box.styles';
 import type {
   PropsWithIsRepeatedAttribute,
   PropsWithIsTabledAttribute,
   PropsWithParentIsReadOnlyAttribute,
   PropsWithQrItemChangeHandler
 } from '../../../interfaces/renderProps.interface';
-import ChoiceSelectAnswerOptionFields from './ChoiceSelectAnswerOptionFields';
 import useReadOnly from '../../../hooks/useReadOnly';
-import ItemFieldGrid from '../ItemParts/ItemFieldGrid';
+import { useQuestionnaireStore } from '../../../stores';
+import useCodingCalculatedExpression from '../../../hooks/useCodingCalculatedExpression';
+import ChoiceSelectAnswerOptionView from './ChoiceSelectAnswerOptionView';
 
+// TODO eventually merge this item with ChoiceRadioAnswerOptionItem
 interface ChoiceSelectAnswerOptionItemProps
   extends PropsWithQrItemChangeHandler,
     PropsWithIsRepeatedAttribute,
@@ -43,51 +44,50 @@ interface ChoiceSelectAnswerOptionItemProps
 function ChoiceSelectAnswerOptionItem(props: ChoiceSelectAnswerOptionItemProps) {
   const { qItem, qrItem, isRepeated, isTabled, parentIsReadOnly, onQrItemChange } = props;
 
+  const onFocusLinkId = useQuestionnaireStore.use.onFocusLinkId();
+
   const readOnly = useReadOnly(qItem, parentIsReadOnly);
 
   // Init input value
-  const qrChoiceSelect = qrItem ?? createEmptyQrItem(qItem);
-  let valueSelect = getQrChoiceValue(qrChoiceSelect);
-  if (!valueSelect) {
-    valueSelect = '';
-  }
+  const qrChoice = qrItem ?? createEmptyQrItem(qItem);
+  const valueChoice = getQrChoiceValue(qrChoice);
+
+  // Process calculated expressions
+  const { calcExpUpdated } = useCodingCalculatedExpression({
+    qItem: qItem,
+    valueInString: valueChoice ?? '',
+    onChangeByCalcExpressionString: (newValueString: string) => {
+      handleChange(newValueString);
+    },
+    onChangeByCalcExpressionNull: () => {
+      onQrItemChange(createEmptyQrItem(qItem));
+    }
+  });
 
   // Event handlers
   function handleChange(newValue: string) {
-    if (qItem.answerOption) {
-      const qrAnswer = findInAnswerOptions(qItem.answerOption, newValue);
-      if (qrAnswer) {
-        onQrItemChange({ ...createEmptyQrItem(qItem), answer: [qrAnswer] });
-        return;
-      }
+    if (!qItem.answerOption) {
+      onQrItemChange(createEmptyQrItem(qItem));
+      return;
     }
-    onQrItemChange(createEmptyQrItem(qItem));
-  }
 
-  if (isRepeated) {
-    return (
-      <ChoiceSelectAnswerOptionFields
-        qItem={qItem}
-        valueSelect={valueSelect}
-        readOnly={readOnly}
-        isTabled={isTabled}
-        onSelectChange={handleChange}
-      />
+    const qrAnswer = findInAnswerOptions(qItem.answerOption, newValue);
+    onQrItemChange(
+      qrAnswer ? { ...createEmptyQrItem(qItem), answer: [qrAnswer] } : createEmptyQrItem(qItem)
     );
   }
 
   return (
-    <FullWidthFormComponentBox data-test="q-item-choice-select-answer-option-box">
-      <ItemFieldGrid qItem={qItem} readOnly={readOnly}>
-        <ChoiceSelectAnswerOptionFields
-          qItem={qItem}
-          valueSelect={valueSelect}
-          readOnly={readOnly}
-          isTabled={isTabled}
-          onSelectChange={handleChange}
-        />
-      </ItemFieldGrid>
-    </FullWidthFormComponentBox>
+    <ChoiceSelectAnswerOptionView
+      qItem={qItem}
+      valueChoice={valueChoice}
+      readOnly={readOnly}
+      calcExpUpdated={calcExpUpdated}
+      isRepeated={isRepeated}
+      isTabled={isTabled}
+      onFocusLinkId={() => onFocusLinkId(qItem.linkId)}
+      onSelectChange={handleChange}
+    />
   );
 }
 

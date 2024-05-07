@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,6 +31,7 @@ import { isQuestionnaire } from '../typePredicates/isQuestionnaire.ts';
 import type { BuildState } from '../types/buildState.interface.ts';
 import { useLocalStorage } from 'usehooks-ts';
 import { buildForm, destroyForm } from '@aehrc/smart-forms-renderer';
+import RendererDebugFooter from '../../renderer/components/RendererDebugFooter/RendererDebugFooter.tsx';
 
 function Playground() {
   const [jsonString, setJsonString] = useLocalStorage('playgroundJsonString', '');
@@ -130,6 +131,7 @@ function Playground() {
           onDestroyForm={handleDestroyForm}
         />
       </Allotment>
+      <RendererDebugFooter />
     </DndProvider>
   );
 }

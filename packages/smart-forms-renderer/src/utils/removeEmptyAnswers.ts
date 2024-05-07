@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,15 +21,15 @@ import type {
   QuestionnaireResponse,
   QuestionnaireResponseItem
 } from 'fhir/r4';
-import type { EnableWhenExpression, EnableWhenItems } from '../interfaces/enableWhen.interface';
-import { isHidden } from './qItem';
+import type { EnableWhenExpressions, EnableWhenItems } from '../interfaces';
+import { isHiddenByEnableWhen } from './qItem';
 
 interface removeEmptyAnswersParams {
   questionnaire: Questionnaire;
   questionnaireResponse: QuestionnaireResponse;
   enableWhenIsActivated: boolean;
   enableWhenItems: EnableWhenItems;
-  enableWhenExpressions: Record<string, EnableWhenExpression>;
+  enableWhenExpressions: EnableWhenExpressions;
 }
 
 /**
@@ -79,7 +79,7 @@ interface removeEmptyAnswersFromItemRecursiveParams {
   qrItem: QuestionnaireResponseItem;
   enableWhenIsActivated: boolean;
   enableWhenItems: EnableWhenItems;
-  enableWhenExpressions: Record<string, EnableWhenExpression>;
+  enableWhenExpressions: EnableWhenExpressions;
 }
 
 function removeEmptyAnswersFromItemRecursive(
@@ -92,10 +92,10 @@ function removeEmptyAnswersFromItemRecursive(
 
   // Process group items
   if (qItems && qItems.length > 0) {
-    // Return nothing if corresponding qItem is hidden
+    // Return nothing if corresponding qItem is hidden via enableWhen
     if (
-      isHidden({
-        questionnaireItem: qItem,
+      isHiddenByEnableWhen({
+        linkId: qItem.linkId,
         enableWhenIsActivated,
         enableWhenItems,
         enableWhenExpressions
@@ -167,11 +167,11 @@ function answerIsEmpty(
   qrItem: QuestionnaireResponseItem,
   enableWhenIsActivated: boolean,
   enableWhenItems: EnableWhenItems,
-  enableWhenExpressions: Record<string, EnableWhenExpression>
+  enableWhenExpressions: EnableWhenExpressions
 ) {
   if (
-    isHidden({
-      questionnaireItem: qItem,
+    isHiddenByEnableWhen({
+      linkId: qItem.linkId,
       enableWhenIsActivated,
       enableWhenItems,
       enableWhenExpressions
@@ -181,6 +181,10 @@ function answerIsEmpty(
   }
 
   if (!qrItem.answer) {
+    return true;
+  }
+
+  if (qrItem.answer.length === 0) {
     return true;
   }
 

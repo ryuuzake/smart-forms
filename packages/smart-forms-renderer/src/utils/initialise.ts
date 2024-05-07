@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,11 +26,12 @@ import type {
   QuestionnaireResponseItem,
   QuestionnaireResponseItemAnswer
 } from 'fhir/r4';
-import type { EnableWhenExpression, EnableWhenItems } from '../interfaces/enableWhen.interface';
+import type { EnableWhenExpressions, EnableWhenItems } from '../interfaces';
 import type { Tabs } from '../interfaces/tab.interface';
 import { assignPopulatedAnswersToEnableWhen } from './enableWhen';
 import type { CalculatedExpression } from '../interfaces/calculatedExpression.interface';
 import { evaluateInitialCalculatedExpressions } from './calculatedExpression';
+import { createQuestionnaireResponseItemMap } from './questionnaireResponseStoreUtils/updatableResponseItems';
 
 /**
  * Initialise a conformant questionnaireResponse from a given questionnaire
@@ -70,14 +71,21 @@ export function initialiseQuestionnaireResponse(
   }
 
   if (!questionnaireResponse.questionnaire) {
-    questionnaireResponse.questionnaire = setQuestionnaireReference(questionnaire);
+    questionnaireResponse.questionnaire = createQuestionnaireReference(questionnaire);
   }
+
+  // Add "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaireresponse" profile
+  // const profiles: string[] = [
+  //   'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaireresponse'
+  // ];
+  // questionnaireResponse.meta = questionnaireResponse.meta || {};
+  // questionnaireResponse.meta.profile = profiles;
 
   return questionnaireResponse;
 }
 
-function setQuestionnaireReference(questionnaire: Questionnaire) {
-  // Use {url}|{version} - the ideal way
+function createQuestionnaireReference(questionnaire: Questionnaire) {
+  // Use {url}|{version}
   if (questionnaire.url) {
     let questionnaireReference = questionnaire.url;
     if (questionnaire.version) {
@@ -315,8 +323,8 @@ function createNewRepeatGroupQuestionnaireResponseItem(
 export interface initialFormFromResponseParams {
   questionnaireResponse: QuestionnaireResponse;
   enableWhenItems: EnableWhenItems;
-  enableWhenExpressions: Record<string, EnableWhenExpression>;
-  calculatedExpressions: Record<string, CalculatedExpression>;
+  enableWhenExpressions: EnableWhenExpressions;
+  calculatedExpressions: Record<string, CalculatedExpression[]>;
   variablesFhirPath: Record<string, Expression[]>;
   tabs: Tabs;
   fhirPathContext: Record<string, any>;
@@ -325,8 +333,8 @@ export interface initialFormFromResponseParams {
 export function initialiseFormFromResponse(params: initialFormFromResponseParams): {
   initialEnableWhenItems: EnableWhenItems;
   initialEnableWhenLinkedQuestions: Record<string, string[]>;
-  initialEnableWhenExpressions: Record<string, EnableWhenExpression>;
-  initialCalculatedExpressions: Record<string, CalculatedExpression>;
+  initialEnableWhenExpressions: EnableWhenExpressions;
+  initialCalculatedExpressions: Record<string, CalculatedExpression[]>;
   firstVisibleTab: number;
   updatedFhirPathContext: Record<string, any>;
 } {
@@ -338,6 +346,7 @@ export function initialiseFormFromResponse(params: initialFormFromResponseParams
     variablesFhirPath,
     tabs
   } = params;
+  const initialResponseItemMap = createQuestionnaireResponseItemMap(questionnaireResponse);
   let updatedFhirPathContext = params.fhirPathContext;
 
   const { initialisedItems, linkedQuestions } = assignPopulatedAnswersToEnableWhen(
@@ -347,15 +356,16 @@ export function initialiseFormFromResponse(params: initialFormFromResponseParams
 
   const evaluateInitialEnableWhenExpressionsResult = evaluateInitialEnableWhenExpressions({
     initialResponse: questionnaireResponse,
+    initialResponseItemMap: initialResponseItemMap,
     enableWhenExpressions: enableWhenExpressions,
-    variablesFhirPath: variablesFhirPath,
-    existingFhirPathContext: updatedFhirPathContext
+    variablesFhirPath: variablesFhirPath
   });
   const { initialEnableWhenExpressions } = evaluateInitialEnableWhenExpressionsResult;
   updatedFhirPathContext = evaluateInitialEnableWhenExpressionsResult.updatedFhirPathContext;
 
   const evaluateInitialCalculatedExpressionsResult = evaluateInitialCalculatedExpressions({
     initialResponse: questionnaireResponse,
+    initialResponseItemMap: initialResponseItemMap,
     calculatedExpressions: calculatedExpressions,
     variablesFhirPath: variablesFhirPath,
     existingFhirPathContext: updatedFhirPathContext

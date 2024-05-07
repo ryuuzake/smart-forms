@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,7 +22,6 @@ import OpenChoiceSelectAnswerOptionItem from './OpenChoiceSelectAnswerOptionItem
 import OpenChoiceSelectAnswerValueSetItem from './OpenChoiceSelectAnswerValueSetItem';
 import OpenChoiceAutocompleteItem from './OpenChoiceAutocompleteItem';
 import { getOpenChoiceControlType } from '../../../utils/openChoice';
-import { getChoiceOrientation } from '../../../utils/choice';
 import OpenChoiceCheckboxAnswerOptionItem from './OpenChoiceCheckboxAnswerOptionItem';
 import OpenChoiceRadioAnswerOptionItem from './OpenChoiceRadioAnswerOptionItem';
 import type {
@@ -47,15 +46,12 @@ function OpenChoiceItemSwitcher(props: OpenChoiceItemSwitcherProps) {
   const { qItem, qrItem, isRepeated, isTabled, showMinimalView, parentIsReadOnly, onQrItemChange } =
     props;
 
-  const orientation = getChoiceOrientation(qItem);
-
   switch (getOpenChoiceControlType(qItem)) {
     case OpenChoiceItemControl.Checkbox:
       return (
         <OpenChoiceCheckboxAnswerOptionItem
           qItem={qItem}
           qrItem={qrItem}
-          orientation={orientation}
           isRepeated={qItem['repeats'] ?? false}
           showMinimalView={showMinimalView}
           parentIsReadOnly={parentIsReadOnly}
@@ -67,7 +63,6 @@ function OpenChoiceItemSwitcher(props: OpenChoiceItemSwitcherProps) {
         <OpenChoiceRadioAnswerOptionItem
           qItem={qItem}
           qrItem={qrItem}
-          orientation={orientation}
           isRepeated={qItem['repeats'] ?? false}
           parentIsReadOnly={parentIsReadOnly}
           onQrItemChange={onQrItemChange}

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@
 import type { Tabs } from './tab.interface';
 import type { Variables } from './variables.interface';
 import type { LaunchContext } from './populate.interface';
-import type { EnableWhenExpression, EnableWhenItemProperties } from './enableWhen.interface';
+import type { EnableWhenExpressions, EnableWhenItems } from './enableWhen.interface';
 import type { CalculatedExpression } from './calculatedExpression.interface';
 import type { AnswerExpression } from './answerExpression.interface';
 import type { Coding } from 'fhir/r4';
@@ -28,9 +28,9 @@ export interface QuestionnaireModel {
   tabs: Tabs;
   variables: Variables;
   launchContexts: Record<string, LaunchContext>;
-  enableWhenItems: Record<string, EnableWhenItemProperties>;
-  enableWhenExpressions: Record<string, EnableWhenExpression>;
-  calculatedExpressions: Record<string, CalculatedExpression>;
+  enableWhenItems: EnableWhenItems;
+  enableWhenExpressions: EnableWhenExpressions;
+  calculatedExpressions: Record<string, CalculatedExpression[]>;
   answerExpressions: Record<string, AnswerExpression>;
   processedValueSetCodings: Record<string, Coding[]>;
   processedValueSetUrls: Record<string, string>;

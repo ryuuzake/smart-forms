@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,7 @@
  */
 
 import type {
+  Encounter,
   FhirResource,
   Questionnaire,
   QuestionnaireItem,
@@ -40,8 +41,9 @@ import moment from 'moment';
 import dayjs from 'dayjs';
 import fhirpath from 'fhirpath';
 import fhirpath_r4_model from 'fhirpath/fhir-context/r4';
-import { findInAnswerOptions } from './answerOption';
 import { getItemPopulationContextName } from './readPopulationExpressions';
+import { createQuestionnaireReference } from './createQuestionnaireReference';
+import { parseItemInitialToAnswer, parseValueToAnswer } from './parse';
 
 /**
  * Constructs a questionnaireResponse recursively from a specified questionnaire, its subject and its initialExpressions
@@ -49,6 +51,7 @@ import { getItemPopulationContextName } from './readPopulationExpressions';
  * @param questionnaire - The questionnaire resource to construct a response from
  * @param subject - A subject reference to form the subject within the response
  * @param populationExpressions - expressions used for pre-population i.e. initialExpressions, itemPopulationContexts
+ * @param encounter - An optional encounter resource to form the questionnaireResponse.encounter property
  * @returns A populated questionnaire response wrapped within a Promise
  *
  * @author Sean Fong
@@ -56,7 +59,8 @@ import { getItemPopulationContextName } from './readPopulationExpressions';
 export async function constructResponse(
   questionnaire: Questionnaire,
   subject: Reference,
-  populationExpressions: PopulationExpressions
+  populationExpressions: PopulationExpressions,
+  encounter?: Encounter
 ): Promise<QuestionnaireResponse> {
   const questionnaireResponse: QuestionnaireResponse = {
     resourceType: 'QuestionnaireResponse',
@@ -117,9 +121,24 @@ export async function constructResponse(
     )
     .filter((item): item is QuestionnaireResponseItem => item !== null);
 
-  questionnaireResponse.questionnaire = questionnaire.url;
+  questionnaireResponse.questionnaire = createQuestionnaireReference(questionnaire);
   questionnaireResponse.item = updatedTopLevelQRItems;
   questionnaireResponse.subject = subject;
+
+  // Add encounter reference if present
+  if (encounter && encounter.id) {
+    questionnaireResponse.encounter = {
+      type: 'Encounter',
+      reference: `Encounter/${encounter.id}`
+    };
+  }
+
+  // Add "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaireresponse" profile
+  // const profiles: string[] = [
+  //   'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaireresponse'
+  // ];
+  // questionnaireResponse.meta = questionnaireResponse.meta || {};
+  // questionnaireResponse.meta.profile = profiles;
 
   return questionnaireResponse;
 }
@@ -255,6 +274,13 @@ function constructGroupItem(params: ConstructGroupItemParams): QuestionnaireResp
     }
   }
 
+  // Populate answers from item.initial if present
+  if (qItem.initial) {
+    populatedAnswers = qItem.initial
+      .map((initial) => parseItemInitialToAnswer(initial))
+      .filter((answer): answer is QuestionnaireResponseItemAnswer => answer !== null);
+  }
+
   if (qrItems.length > 0) {
     return {
       linkId: qItem.linkId,
@@ -296,10 +322,6 @@ function constructSingleItem(params: ConstructSingleItemParams): QuestionnaireRe
 
   const { initialExpressions } = populationExpressions;
 
-  if (itemIsHidden(qItem)) {
-    return null;
-  }
-
   // Populate answers from initialExpressions if present
   const initialExpression = initialExpressions[qItem.linkId];
   if (initialExpression) {
@@ -322,6 +344,18 @@ function constructSingleItem(params: ConstructSingleItemParams): QuestionnaireRe
       };
     }
   }
+
+  // Populate answers from item.initial if present
+  if (qItem.initial) {
+    return {
+      linkId: qItem.linkId,
+      answer: qItem.initial
+        .map((initial) => parseItemInitialToAnswer(initial))
+        .filter((answer): answer is QuestionnaireResponseItemAnswer => answer !== null),
+      ...(qItem.text ? { text: qItem.text } : {})
+    };
+  }
+
   return null;
 }
 
@@ -381,56 +415,6 @@ function getAnswerValues(
   });
 
   return { newValues, expandRequired };
-}
-
-function itemIsHidden(item: QuestionnaireItem): boolean {
-  return !!item.extension?.find(
-    (extension) =>
-      extension.url === 'http://hl7.org/fhir/StructureDefinition/questionnaire-hidden' &&
-      extension.valueBoolean === true
-  );
-}
-
-function parseValueToAnswer(qItem: QuestionnaireItem, value: any): QuestionnaireResponseItemAnswer {
-  if (qItem.answerOption) {
-    const answerOption = findInAnswerOptions(qItem.answerOption, value);
-
-    if (answerOption) {
-      return answerOption;
-    }
-  }
-
-  if (typeof value === 'boolean' && qItem.type === 'boolean') {
-    return { valueBoolean: value };
-  }
-
-  if (typeof value === 'number') {
-    if (qItem.type === 'decimal') {
-      return { valueDecimal: value };
-    }
-    if (qItem.type === 'integer') {
-      return { valueInteger: value };
-    }
-  }
-
-  if (typeof value === 'object') {
-    return { valueCoding: value };
-  }
-
-  // Value is string at this point
-  if (qItem.type === 'date' && checkIsDateTime(value)) {
-    return { valueDate: convertDateTimeToDate(value) };
-  }
-
-  if (qItem.type === 'dateTime' && checkIsDateTime(value)) {
-    return { valueDateTime: value };
-  }
-
-  if (qItem.type === 'time' && checkIsTime(value)) {
-    return { valueTime: value };
-  }
-
-  return { valueString: value };
 }
 
 /**
@@ -533,11 +517,6 @@ function constructRepeatGroupInstances(
     };
 
     for (const childItem of qRepeatGroupParent.item) {
-      // Skip if item is hidden
-      if (itemIsHidden(childItem)) {
-        continue;
-      }
-
       // Populate answers from initialExpressions
       const initialExpression = initialExpressions[childItem.linkId];
       if (initialExpression) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,50 +17,43 @@
 
 import { StyledRoot } from '../../../../components/DebugFooter/DebugFooter.styles.ts';
 import { useState } from 'react';
-import DebugResponse from './DebugResponse.tsx';
-import type { QuestionnaireResponseItem } from 'fhir/r4';
+import DebugPanel from './DebugPanel.tsx';
 import RendererDebugBar from './RendererDebugBar.tsx';
-import { useQuestionnaireResponseStore, useQuestionnaireStore } from '@aehrc/smart-forms-renderer';
-
-const clearTopLevelQRItem: QuestionnaireResponseItem = {
-  linkId: 'clearedItem',
-  text: 'Cleared',
-  item: []
-};
+import {
+  initialiseQuestionnaireResponse,
+  useQuestionnaireResponseStore,
+  useQuestionnaireStore
+} from '@aehrc/smart-forms-renderer';
 
 function RendererDebugFooter() {
   const [isHidden, setIsHidden] = useState(true);
 
   const sourceQuestionnaire = useQuestionnaireStore.use.sourceQuestionnaire();
-  const updatableResponse = useQuestionnaireResponseStore.use.updatableResponse();
-
   const fhirPathContext = useQuestionnaireStore.use.fhirPathContext();
+  const populatedContext = useQuestionnaireStore.use.populatedContext();
+  const updatableResponse = useQuestionnaireResponseStore.use.updatableResponse();
+  const updatableResponseItems = useQuestionnaireResponseStore.use.updatableResponseItems();
 
   const setUpdatableResponseAsEmpty =
     useQuestionnaireResponseStore.use.setUpdatableResponseAsEmpty();
+  const updateExpressions = useQuestionnaireStore.use.updateExpressions();
 
   function handleClearExistingResponse() {
-    if (!updatableResponse.item || updatableResponse.item.length === 0) {
-      return;
-    }
+    const clearedResponse = initialiseQuestionnaireResponse(sourceQuestionnaire);
 
-    const clearTopLevelQRItems: QuestionnaireResponseItem[] = Array(
-      updatableResponse.item.length
-    ).fill(clearTopLevelQRItem);
-
-    setUpdatableResponseAsEmpty({
-      ...updatableResponse,
-      item: clearTopLevelQRItems
-    });
+    setUpdatableResponseAsEmpty(clearedResponse);
+    updateExpressions(clearedResponse);
   }
 
   return (
     <>
       {isHidden ? null : (
-        <DebugResponse
+        <DebugPanel
           questionnaire={sourceQuestionnaire}
           questionnaireResponse={updatableResponse}
+          questionnaireResponseItems={updatableResponseItems}
           fhirPathContext={fhirPathContext}
+          populatedContext={populatedContext}
           clearQResponse={() => handleClearExistingResponse()}
         />
       )}

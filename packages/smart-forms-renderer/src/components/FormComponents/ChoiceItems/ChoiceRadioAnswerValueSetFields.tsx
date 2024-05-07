@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,40 +24,63 @@ import { StyledRadioGroup } from '../Item.styles';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { StyledAlert } from '../../Alert.styles';
 import type { TerminologyError } from '../../../hooks/useValueSetCodings';
+import { getChoiceOrientation } from '../../../utils/choice';
+import { TEXT_FIELD_WIDTH } from '../Textfield.styles';
+import FadingCheckIcon from '../ItemParts/FadingCheckIcon';
+import type { PropsWithIsTabledAttribute } from '../../../interfaces/renderProps.interface';
+import Box from '@mui/material/Box';
 
-interface ChoiceRadioAnswerValueSetFieldsProps {
+interface ChoiceRadioAnswerValueSetFieldsProps extends PropsWithIsTabledAttribute {
   qItem: QuestionnaireItem;
   codings: Coding[];
   valueRadio: string | null;
-  orientation: ChoiceItemOrientation;
   readOnly: boolean;
+  calcExpUpdated: boolean;
   terminologyError: TerminologyError;
   onCheckedChange: (newValue: string) => void;
 }
 
 function ChoiceRadioAnswerValueSetFields(props: ChoiceRadioAnswerValueSetFieldsProps) {
-  const { qItem, codings, valueRadio, orientation, readOnly, terminologyError, onCheckedChange } =
-    props;
+  const {
+    qItem,
+    codings,
+    valueRadio,
+    readOnly,
+    calcExpUpdated,
+    terminologyError,
+    isTabled,
+    onCheckedChange
+  } = props;
+
+  const orientation = getChoiceOrientation(qItem) ?? ChoiceItemOrientation.Vertical;
 
   if (codings.length > 0) {
     return (
-      <StyledRadioGroup
-        row={orientation === ChoiceItemOrientation.Horizontal}
-        name={qItem.text}
-        id={qItem.id}
-        onChange={(e) => onCheckedChange(e.target.value)}
-        value={valueRadio ?? null}>
-        {codings.map((coding: Coding) => {
-          return (
-            <ChoiceRadioSingle
-              key={coding.code ?? ''}
-              value={coding.code ?? ''}
-              label={coding.display ?? `${coding.code}`}
-              readOnly={readOnly}
-            />
-          );
-        })}
-      </StyledRadioGroup>
+      <Box
+        display="flex"
+        alignItems="center"
+        sx={{ maxWidth: !isTabled ? TEXT_FIELD_WIDTH : 3000, minWidth: 160 }}>
+        <StyledRadioGroup
+          row={orientation === ChoiceItemOrientation.Horizontal}
+          name={qItem.text}
+          id={qItem.id}
+          onChange={(e) => onCheckedChange(e.target.value)}
+          value={valueRadio ?? null}>
+          {codings.map((coding: Coding) => {
+            return (
+              <ChoiceRadioSingle
+                key={coding.code ?? ''}
+                value={coding.code ?? ''}
+                label={coding.display ?? `${coding.code}`}
+                readOnly={readOnly}
+              />
+            );
+          })}
+        </StyledRadioGroup>
+        <Box flexGrow={1} />
+
+        <FadingCheckIcon fadeIn={calcExpUpdated} />
+      </Box>
     );
   }
 

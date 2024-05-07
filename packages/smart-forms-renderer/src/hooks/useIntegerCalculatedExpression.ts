@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,8 @@
  */
 
 import { useEffect, useState } from 'react';
-import { createEmptyQrItem } from '../utils/qrItem';
-import type { QuestionnaireItem, QuestionnaireResponseItem } from 'fhir/r4';
-import { useQuestionnaireStore } from '../stores/questionnaireStore';
+import type { QuestionnaireItem } from 'fhir/r4';
+import { useQuestionnaireStore } from '../stores';
 
 interface UseIntegerCalculatedExpression {
   calcExpUpdated: boolean;
@@ -26,15 +25,16 @@ interface UseIntegerCalculatedExpression {
 
 interface useIntegerCalculatedExpressionProps {
   qItem: QuestionnaireItem;
-  inputValue: number;
-  setInputValue: (value: number) => void;
-  onQrItemChange: (qrItem: QuestionnaireResponseItem) => void;
+  inputValue: string;
+  onChangeByCalcExpressionInteger: (calcExpressionValue: number) => void;
+  onChangeByCalcExpressionNull: () => void;
 }
 
 function useIntegerCalculatedExpression(
   props: useIntegerCalculatedExpressionProps
 ): UseIntegerCalculatedExpression {
-  const { qItem, inputValue, setInputValue, onQrItemChange } = props;
+  const { qItem, inputValue, onChangeByCalcExpressionInteger, onChangeByCalcExpressionNull } =
+    props;
 
   const calculatedExpressions = useQuestionnaireStore.use.calculatedExpressions();
 
@@ -42,22 +42,37 @@ function useIntegerCalculatedExpression(
 
   useEffect(
     () => {
-      const calcExpression = calculatedExpressions[qItem.linkId];
+      const calcExpression = calculatedExpressions[qItem.linkId]?.find(
+        (exp) => exp.from === 'item'
+      );
+
+      if (!calcExpression) {
+        return;
+      }
 
       // only update if calculated value is different from current value
-      if (calcExpression?.value !== inputValue && typeof calcExpression?.value === 'number') {
-        // update ui to show calculated value changes
-        setCalcExpUpdated(true);
-        setTimeout(() => {
-          setCalcExpUpdated(false);
-        }, 500);
+      if (
+        calcExpression.value !== inputValue &&
+        (typeof calcExpression.value === 'number' || calcExpression.value === null)
+      ) {
+        const calcExpressionValue = calcExpression.value;
 
-        // update questionnaireResponse
-        setInputValue(calcExpression.value);
-        onQrItemChange({
-          ...createEmptyQrItem(qItem),
-          answer: [{ valueInteger: calcExpression.value }]
-        });
+        if (calcExpressionValue !== parseInt(inputValue)) {
+          // update ui to show calculated value changes
+          setCalcExpUpdated(true);
+          setTimeout(() => {
+            setCalcExpUpdated(false);
+          }, 500);
+
+          // calculatedExpression value is null
+          if (calcExpressionValue === null) {
+            onChangeByCalcExpressionNull();
+            return;
+          }
+
+          // calculatedExpression value is a number
+          onChangeByCalcExpressionInteger(calcExpressionValue);
+        }
       }
     },
     // Only trigger this effect if calculatedExpression of item changes

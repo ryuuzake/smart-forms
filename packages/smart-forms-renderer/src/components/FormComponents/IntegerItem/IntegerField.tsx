@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,7 @@ import FadingCheckIcon from '../ItemParts/FadingCheckIcon';
 
 interface IntegerFieldProps extends PropsWithIsTabledAttribute {
   linkId: string;
-  value: number;
+  input: string;
   feedback: string;
   displayPrompt: string;
   displayUnit: string;
@@ -36,7 +36,7 @@ interface IntegerFieldProps extends PropsWithIsTabledAttribute {
 function IntegerField(props: IntegerFieldProps) {
   const {
     linkId,
-    value,
+    input,
     feedback,
     displayPrompt,
     displayUnit,
@@ -50,13 +50,13 @@ function IntegerField(props: IntegerFieldProps) {
   return (
     <StandardTextField
       id={linkId}
-      value={value.toString()}
+      value={input}
       error={!!feedback}
       helperText={feedback}
       onChange={(event) => onInputChange(event.target.value)}
       disabled={readOnly}
       label={displayPrompt}
-      placeholder={entryFormat}
+      placeholder={entryFormat === '' ? '0' : entryFormat}
       fullWidth
       isTabled={isTabled}
       size="small"

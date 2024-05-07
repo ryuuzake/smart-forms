@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +15,9 @@
  * limitations under the License.
  */
 
-import type { Coding, Expression, Extension, QuestionnaireItem } from 'fhir/r4';
+import type { Coding, Extension, QuestionnaireItem } from 'fhir/r4';
 import type { RegexValidation } from '../interfaces/regex.interface';
+import { structuredDataCapture } from 'fhir-sdc-helpers';
 
 /**
  * Check if the extension has an itemControl code equal to the given itemControlCode
@@ -98,26 +99,6 @@ export function hasHiddenExtension(qItem: QuestionnaireItem): boolean {
     }
   }
   return false;
-}
-
-/**
- * Check if an answerExpression extension is present
- *
- * @author Sean Fong
- */
-export function getAnswerExpression(qItem: QuestionnaireItem): Expression | null {
-  const itemControl = qItem.extension?.find(
-    (extension: Extension) =>
-      extension.url ===
-        'http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-answerExpression' &&
-      extension.valueExpression?.language === 'text/fhirpath'
-  );
-  if (itemControl) {
-    if (itemControl.valueExpression) {
-      return itemControl.valueExpression;
-    }
-  }
-  return null;
 }
 
 /**
@@ -237,6 +218,7 @@ export function getTextDisplayPrompt(qItem: QuestionnaireItem): string {
  * @author Sean Fong
  */
 export function getTextDisplayUnit(qItem: QuestionnaireItem): string {
+  // Check if the item has a display unit childItem
   if (qItem.item) {
     for (const childItem of qItem.item) {
       if (childItem.type === 'display' && isSpecificItemControl(childItem, 'unit')) {
@@ -244,6 +226,16 @@ export function getTextDisplayUnit(qItem: QuestionnaireItem): string {
       }
     }
   }
+
+  // Otherwise, check if the item has a unit extension
+  const itemControl = qItem.extension?.find(
+    (extension: Extension) =>
+      extension.url === 'http://hl7.org/fhir/StructureDefinition/questionnaire-unit'
+  );
+  if (itemControl && itemControl.valueCoding) {
+    return itemControl.valueCoding.display ?? '';
+  }
+
   return '';
 }
 
@@ -312,17 +304,30 @@ export function getTextDisplayFlyover(qItem: QuestionnaireItem): string {
 }
 
 /**
- * Get entry format if its extension is present
- * i.e. DD-MM-YYYY for dates, HH:MM for times etc.
+ * Get regex validation for items with regex extensions
  *
  * @author Sean Fong
  */
-export function getRegexValidation(qItem: QuestionnaireItem): RegexValidation | null {
+export function getRegexValidation(qItem: QuestionnaireItem): RegexValidation | undefined {
+  // Get regex expression from extension
+  const regexString = getRegexString(qItem);
+  if (regexString) {
+    return { expression: new RegExp(regexString), feedback: null };
+  }
+
+  // Get regex expression from item types if regex extensions not present
+  if (qItem.type === 'url') {
+    return { expression: new RegExp(/^\S*$/), feedback: 'URLs should not contain any whitespaces' };
+  }
+
+  return undefined;
+}
+
+export function getRegexString(qItem: QuestionnaireItem): string | null {
   const itemControl = qItem.extension?.find(
     (extension: Extension) => extension.url === 'http://hl7.org/fhir/StructureDefinition/regex'
   );
 
-  // Get regex expression from extension
   if (itemControl) {
     const extensionString = itemControl.valueString;
     if (extensionString) {
@@ -336,14 +341,55 @@ export function getRegexValidation(qItem: QuestionnaireItem): RegexValidation | 
         regexString = extensionString;
       }
 
-      return { expression: new RegExp(regexString), feedback: null };
+      return regexString;
     }
   }
 
-  // Get regex expression from item types if regex extensions not present
-  if (qItem.type === 'url') {
-    return { expression: new RegExp(/^\S*$/), feedback: 'URLs should not contain any whitespaces' };
-  }
-
   return null;
+}
+
+export function getMinValue(qItem: QuestionnaireItem) {
+  switch (qItem.type) {
+    case 'integer':
+      return structuredDataCapture.getMinValueAsInteger(qItem);
+    case 'decimal':
+      // In the case for decimals, permit minValue to be a decimal or integer
+      return (
+        structuredDataCapture.getMinValueAsDecimal(qItem) ??
+        structuredDataCapture.getMinValueAsInteger(qItem)
+      );
+    case 'date':
+      return structuredDataCapture.getMinValueAsDate(qItem);
+    case 'dateTime':
+      // In the case for dateTime, permit minValue to be a dateTime or date
+      return (
+        structuredDataCapture.getMinValueAsDateTime(qItem) ??
+        structuredDataCapture.getMinValueAsDate(qItem)
+      );
+    default:
+      return undefined;
+  }
+}
+
+export function getMaxValue(qItem: QuestionnaireItem) {
+  switch (qItem.type) {
+    case 'integer':
+      return structuredDataCapture.getMaxValueAsInteger(qItem);
+    case 'decimal':
+      // In the case for decimals, permit maxValue to be a decimal or integer
+      return (
+        structuredDataCapture.getMaxValueAsDecimal(qItem) ??
+        structuredDataCapture.getMaxValueAsInteger(qItem)
+      );
+    case 'date':
+      return structuredDataCapture.getMaxValueAsDate(qItem);
+    case 'dateTime':
+      // In the case for dateTime, permit maxValue to be a dateTime or date
+      return (
+        structuredDataCapture.getMaxValueAsDateTime(qItem) ??
+        structuredDataCapture.getMaxValueAsDate(qItem)
+      );
+    default:
+      return undefined;
+  }
 }

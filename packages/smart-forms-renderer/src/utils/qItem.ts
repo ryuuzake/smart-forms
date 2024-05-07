@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,56 +19,49 @@ import type { Extension, Questionnaire, QuestionnaireItem } from 'fhir/r4';
 import { getChoiceControlType } from './choice';
 import { ChoiceItemControl, OpenChoiceItemControl } from '../interfaces/choice.enum';
 import { getOpenChoiceControlType } from './openChoice';
-import type { EnableWhenExpression, EnableWhenItems } from '../interfaces/enableWhen.interface';
-import { structuredDataCapture } from 'fhir-sdc-helpers';
-
-interface isHiddenParams {
-  questionnaireItem: QuestionnaireItem;
-  enableWhenIsActivated: boolean;
-  enableWhenItems: EnableWhenItems;
-  enableWhenExpressions: Record<string, EnableWhenExpression>;
-}
-
-/**
- * Test the given QItem on a series of checks to verify if the item should be displayed
- * Check if qItem has hidden attribute
- * Check if qItem fulfilled its enableWhen criteria
- *
- * @author Sean Fong
- */
-export function isHidden(params: isHiddenParams): boolean {
-  const { questionnaireItem, enableWhenIsActivated, enableWhenItems, enableWhenExpressions } =
-    params;
-  if (structuredDataCapture.getHidden(questionnaireItem)) {
-    return true;
-  }
-
-  return isHiddenByEnableWhens({
-    linkId: questionnaireItem.linkId,
-    enableWhenIsActivated,
-    enableWhenItems,
-    enableWhenExpressions
-  });
-}
+import type { EnableWhenExpressions, EnableWhenItems } from '../interfaces';
 
 interface isHiddenByEnableWhensParams {
   linkId: string;
   enableWhenIsActivated: boolean;
   enableWhenItems: EnableWhenItems;
-  enableWhenExpressions: Record<string, EnableWhenExpression>;
+  enableWhenExpressions: EnableWhenExpressions;
+  parentRepeatGroupIndex?: number;
 }
 
-export function isHiddenByEnableWhens(params: isHiddenByEnableWhensParams): boolean {
-  const { linkId, enableWhenIsActivated, enableWhenItems, enableWhenExpressions } = params;
+export function isHiddenByEnableWhen(params: isHiddenByEnableWhensParams): boolean {
+  const {
+    linkId,
+    enableWhenIsActivated,
+    enableWhenItems,
+    enableWhenExpressions,
+    parentRepeatGroupIndex
+  } = params;
 
-  if (enableWhenIsActivated) {
-    if (enableWhenItems[linkId]) {
-      return !enableWhenItems[linkId].isEnabled;
-    }
+  // If enableWhen is not activated, items are not hidden by enableWhen
+  if (!enableWhenIsActivated) {
+    return false;
+  }
 
-    if (enableWhenExpressions[linkId]) {
-      return !enableWhenExpressions[linkId].isEnabled;
-    }
+  // Check enableWhen items
+  const { singleItems, repeatItems } = enableWhenItems;
+  if (singleItems[linkId]) {
+    return !singleItems[linkId].isEnabled;
+  }
+
+  if (repeatItems[linkId] && parentRepeatGroupIndex !== undefined) {
+    return !repeatItems[linkId].enabledIndexes[parentRepeatGroupIndex];
+  }
+
+  // Check enableWhenExpressions
+  const { singleExpressions, repeatExpressions } = enableWhenExpressions;
+
+  if (repeatExpressions[linkId] && parentRepeatGroupIndex !== undefined) {
+    return !repeatExpressions[linkId].enabledIndexes[parentRepeatGroupIndex];
+  }
+
+  if (singleExpressions[linkId]) {
+    return !enableWhenExpressions.singleExpressions[linkId].isEnabled;
   }
 
   return false;

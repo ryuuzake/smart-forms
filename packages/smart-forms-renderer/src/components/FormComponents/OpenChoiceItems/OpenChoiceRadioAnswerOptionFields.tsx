@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,7 @@ import type { QuestionnaireItem } from 'fhir/r4';
 import { StyledRadioGroup } from '../Item.styles';
 import RadioButtonWithOpenLabel from '../ItemParts/RadioButtonWithOpenLabel';
 import RadioAnswerOptionButtons from '../ItemParts/RadioAnswerOptionButtons';
+import { getChoiceOrientation } from '../../../utils/choice';
 
 interface OpenChoiceRadioAnswerOptionFieldsProps {
   qItem: QuestionnaireItem;
@@ -29,7 +30,6 @@ interface OpenChoiceRadioAnswerOptionFieldsProps {
   openLabelText: string | null;
   openLabelValue: string | null;
   openLabelSelected: boolean;
-  orientation: ChoiceItemOrientation;
   readOnly: boolean;
   onValueChange: (changedOptionValue: string | null, changedOpenLabelValue: string | null) => void;
 }
@@ -41,10 +41,11 @@ function OpenChoiceRadioAnswerOptionFields(props: OpenChoiceRadioAnswerOptionFie
     openLabelText,
     openLabelValue,
     openLabelSelected,
-    orientation,
     readOnly,
     onValueChange
   } = props;
+
+  const orientation = getChoiceOrientation(qItem) ?? ChoiceItemOrientation.Vertical;
 
   return (
     <StyledRadioGroup

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,10 +31,11 @@ import { DEBOUNCE_DURATION } from '../../../utils/debounce';
 import { FullWidthFormComponentBox } from '../../Box.styles';
 import IntegerField from './IntegerField';
 import useIntegerCalculatedExpression from '../../../hooks/useIntegerCalculatedExpression';
-import { parseValidInteger } from '../../../utils/parseInputs';
+import { parseIntegerString } from '../../../utils/parseInputs';
 import ItemFieldGrid from '../ItemParts/ItemFieldGrid';
-import useNumberInput from '../../../hooks/useNumberInput';
 import useReadOnly from '../../../hooks/useReadOnly';
+import { useQuestionnaireStore } from '../../../stores';
+import useStringInput from '../../../hooks/useStringInput';
 
 interface IntegerItemProps
   extends PropsWithQrItemChangeHandler,
@@ -48,50 +49,67 @@ interface IntegerItemProps
 function IntegerItem(props: IntegerItemProps) {
   const { qItem, qrItem, isRepeated, isTabled, parentIsReadOnly, onQrItemChange } = props;
 
+  const onFocusLinkId = useQuestionnaireStore.use.onFocusLinkId();
+
   const readOnly = useReadOnly(qItem, parentIsReadOnly);
-  const { displayUnit, displayPrompt, entryFormat, regexValidation, minLength, maxLength } =
-    useRenderingExtensions(qItem);
+  const { displayUnit, displayPrompt, entryFormat } = useRenderingExtensions(qItem);
 
   // Init input value
   let valueInteger = 0;
+  let initialInput = '';
   if (qrItem?.answer) {
     if (qrItem?.answer[0].valueInteger) {
       valueInteger = qrItem.answer[0].valueInteger;
     }
+
     if (qrItem?.answer[0].valueDecimal) {
       valueInteger = Math.round(qrItem.answer[0].valueDecimal);
     }
+
+    initialInput = valueInteger.toString();
   }
-  const [value, setValue] = useNumberInput(valueInteger);
+
+  const [input, setInput] = useStringInput(initialInput);
 
   // Perform validation checks
-  const feedback = useValidationFeedback(value.toString(), regexValidation, minLength, maxLength);
+  const feedback = useValidationFeedback(qItem, input);
 
   // Process calculated expressions
   const { calcExpUpdated } = useIntegerCalculatedExpression({
     qItem: qItem,
-    inputValue: value,
-    setInputValue: (newValue) => {
-      setValue(newValue);
+    inputValue: input,
+    onChangeByCalcExpressionInteger: (newValueInteger: number) => {
+      setInput(newValueInteger.toString());
+      onQrItemChange({
+        ...createEmptyQrItem(qItem),
+        answer: [{ valueInteger: newValueInteger }]
+      });
     },
-    onQrItemChange: onQrItemChange
+    onChangeByCalcExpressionNull: () => {
+      setInput('');
+      onQrItemChange(createEmptyQrItem(qItem));
+    }
   });
 
   // Event handlers
   function handleInputChange(newInput: string) {
-    const newValue = parseValidInteger(newInput);
+    const parsedNewInput = parseIntegerString(newInput);
 
-    setValue(newValue);
-    updateQrItemWithDebounce(newValue);
+    setInput(parsedNewInput);
+    updateQrItemWithDebounce(parsedNewInput);
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateQrItemWithDebounce = useCallback(
-    debounce((newValue: number) => {
-      onQrItemChange({
-        ...createEmptyQrItem(qItem),
-        answer: [{ valueInteger: newValue }]
-      });
+    debounce((parsedNewInput: string) => {
+      if (parsedNewInput === '') {
+        onQrItemChange(createEmptyQrItem(qItem));
+      } else {
+        onQrItemChange({
+          ...createEmptyQrItem(qItem),
+          answer: [{ valueInteger: parseInt(parsedNewInput) }]
+        });
+      }
     }, DEBOUNCE_DURATION),
     [onQrItemChange, qItem, displayUnit]
   ); // Dependencies are tested, debounce is causing eslint to not recognise dependencies
@@ -100,7 +118,7 @@ function IntegerItem(props: IntegerItemProps) {
     return (
       <IntegerField
         linkId={qItem.linkId}
-        value={value}
+        input={input}
         feedback={feedback}
         displayPrompt={displayPrompt}
         displayUnit={displayUnit}
@@ -114,11 +132,14 @@ function IntegerItem(props: IntegerItemProps) {
   }
 
   return (
-    <FullWidthFormComponentBox data-test="q-item-integer-box">
+    <FullWidthFormComponentBox
+      data-test="q-item-integer-box"
+      data-linkid={qItem.linkId}
+      onClick={() => onFocusLinkId(qItem.linkId)}>
       <ItemFieldGrid qItem={qItem} readOnly={readOnly}>
         <IntegerField
           linkId={qItem.linkId}
-          value={value}
+          input={input}
           feedback={feedback}
           displayPrompt={displayPrompt}
           displayUnit={displayUnit}

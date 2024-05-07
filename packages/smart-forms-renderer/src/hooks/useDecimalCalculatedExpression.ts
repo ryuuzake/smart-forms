@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,8 +16,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { createEmptyQrItem } from '../utils/qrItem';
-import type { QuestionnaireItem, QuestionnaireResponseItem } from 'fhir/r4';
+import type { QuestionnaireItem } from 'fhir/r4';
 import { useQuestionnaireStore } from '../stores';
 
 interface UseDecimalCalculatedExpression {
@@ -28,14 +27,20 @@ interface useDecimalCalculatedExpressionProps {
   qItem: QuestionnaireItem;
   inputValue: string;
   precision: number | null;
-  setInputValue: (value: string) => void;
-  onQrItemChange: (qrItem: QuestionnaireResponseItem) => void;
+  onChangeByCalcExpressionDecimal: (calcExpressionValue: number) => void;
+  onChangeByCalcExpressionNull: () => void;
 }
 
 function useDecimalCalculatedExpression(
   props: useDecimalCalculatedExpressionProps
 ): UseDecimalCalculatedExpression {
-  const { qItem, inputValue, precision, setInputValue, onQrItemChange } = props;
+  const {
+    qItem,
+    inputValue,
+    precision,
+    onChangeByCalcExpressionDecimal,
+    onChangeByCalcExpressionNull
+  } = props;
 
   const calculatedExpressions = useQuestionnaireStore.use.calculatedExpressions();
 
@@ -43,28 +48,40 @@ function useDecimalCalculatedExpression(
 
   useEffect(
     () => {
-      const calcExpression = calculatedExpressions[qItem.linkId];
+      const calcExpression = calculatedExpressions[qItem.linkId]?.find(
+        (exp) => exp.from === 'item'
+      );
+
+      if (!calcExpression) {
+        return;
+      }
 
       // only update if calculated value is different from current value
-      if (calcExpression?.value !== inputValue && typeof calcExpression?.value === 'number') {
-        const value = precision
-          ? parseFloat(calcExpression.value.toFixed(precision))
-          : calcExpression.value;
+      if (
+        calcExpression.value !== inputValue &&
+        (typeof calcExpression.value === 'number' || calcExpression.value === null)
+      ) {
+        const calcExpressionValue =
+          typeof calcExpression.value === 'number' && typeof precision === 'number'
+            ? parseFloat(calcExpression.value.toFixed(precision))
+            : calcExpression.value;
 
         // only update if calculated value is different from current value
-        if (value !== parseFloat(inputValue)) {
+        if (calcExpressionValue !== parseFloat(inputValue)) {
           // update ui to show calculated value changes
           setCalcExpUpdated(true);
           setTimeout(() => {
             setCalcExpUpdated(false);
           }, 500);
 
-          // update questionnaireResponse
-          setInputValue(precision ? value.toFixed(precision) : value.toString());
-          onQrItemChange({
-            ...createEmptyQrItem(qItem),
-            answer: [{ valueDecimal: value }]
-          });
+          // calculatedExpression value is null
+          if (calcExpressionValue === null) {
+            onChangeByCalcExpressionNull();
+            return;
+          }
+
+          // calculatedExpression value is a number
+          onChangeByCalcExpressionDecimal(calcExpressionValue);
         }
       }
     },

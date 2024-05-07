@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,6 @@
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import type { ChoiceItemOrientation } from '../../../interfaces/choice.enum';
 import { CheckBoxOption } from '../../../interfaces/choice.enum';
 import type { QuestionnaireItem, QuestionnaireResponseItem } from 'fhir/r4';
 import { createEmptyQrItem } from '../../../utils/qrItem';
@@ -39,6 +38,7 @@ import DisplayInstructions from '../DisplayItem/DisplayInstructions';
 import OpenChoiceCheckboxAnswerOptionFields from './OpenChoiceCheckboxAnswerOptionFields';
 import useReadOnly from '../../../hooks/useReadOnly';
 import ItemFieldGrid from '../ItemParts/ItemFieldGrid';
+import { useQuestionnaireStore } from '../../../stores';
 
 interface OpenChoiceCheckboxAnswerOptionItemProps
   extends PropsWithQrItemChangeHandler,
@@ -47,19 +47,19 @@ interface OpenChoiceCheckboxAnswerOptionItemProps
     PropsWithParentIsReadOnlyAttribute {
   qItem: QuestionnaireItem;
   qrItem: QuestionnaireResponseItem | null;
-  orientation: ChoiceItemOrientation;
 }
 
 function OpenChoiceCheckboxAnswerOptionItem(props: OpenChoiceCheckboxAnswerOptionItemProps) {
   const {
     qItem,
     qrItem,
-    orientation,
     isRepeated,
     showMinimalView = false,
     parentIsReadOnly,
     onQrItemChange
   } = props;
+
+  const onFocusLinkId = useQuestionnaireStore.use.onFocusLinkId();
 
   const readOnly = useReadOnly(qItem, parentIsReadOnly);
   const openLabelText = getOpenLabelText(qItem);
@@ -146,7 +146,6 @@ function OpenChoiceCheckboxAnswerOptionItem(props: OpenChoiceCheckboxAnswerOptio
           openLabelValue={openLabelValue}
           openLabelChecked={openLabelChecked}
           readOnly={readOnly}
-          orientation={orientation}
           onValueChange={handleValueChange}
           onOpenLabelCheckedChange={handleOpenLabelCheckedChange}
           onOpenLabelInputChange={handleOpenLabelInputChange}
@@ -157,7 +156,10 @@ function OpenChoiceCheckboxAnswerOptionItem(props: OpenChoiceCheckboxAnswerOptio
   }
 
   return (
-    <FullWidthFormComponentBox data-test="q-item-open-choice-checkbox-answer-option-box">
+    <FullWidthFormComponentBox
+      data-test="q-item-open-choice-checkbox-answer-option-box"
+      data-linkid={qItem.linkId}
+      onClick={() => onFocusLinkId(qItem.linkId)}>
       <ItemFieldGrid qItem={qItem} readOnly={readOnly}>
         <OpenChoiceCheckboxAnswerOptionFields
           qItem={qItem}
@@ -166,7 +168,6 @@ function OpenChoiceCheckboxAnswerOptionItem(props: OpenChoiceCheckboxAnswerOptio
           openLabelValue={openLabelValue}
           openLabelChecked={openLabelChecked}
           readOnly={readOnly}
-          orientation={orientation}
           onValueChange={handleValueChange}
           onOpenLabelCheckedChange={handleOpenLabelCheckedChange}
           onOpenLabelInputChange={handleOpenLabelInputChange}

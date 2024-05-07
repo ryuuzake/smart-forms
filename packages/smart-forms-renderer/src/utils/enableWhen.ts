@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,11 @@ import type {
   QuestionnaireResponseItemAnswer
 } from 'fhir/r4';
 import cloneDeep from 'lodash.clonedeep';
-import type { EnableWhenItemProperties, EnableWhenItems } from '../interfaces/enableWhen.interface';
+import type {
+  EnableWhenItems,
+  EnableWhenRepeatItemProperties,
+  EnableWhenSingleItemProperties
+} from '../interfaces';
 
 /**
  * Create a linkedQuestionsMap that contains linked items of enableWhen items
@@ -35,18 +39,23 @@ import type { EnableWhenItemProperties, EnableWhenItems } from '../interfaces/en
 export function createEnableWhenLinkedQuestions(enableWhenItems: EnableWhenItems) {
   const linkedQuestionsMap: Record<string, string[]> = {};
 
-  for (const linkId in enableWhenItems) {
-    enableWhenItems[linkId].linked.forEach((linkedItem) => {
-      const linkQId = linkedItem.enableWhen.question;
-      if (!linkedQuestionsMap[linkQId]) {
-        linkedQuestionsMap[linkQId] = [];
-      }
+  const { singleItems, repeatItems } = enableWhenItems;
 
-      if (!linkedQuestionsMap[linkQId].includes(linkId)) {
-        linkedQuestionsMap[linkQId].push(linkId);
-      }
-    });
+  for (const items of [singleItems, repeatItems]) {
+    for (const linkId in items) {
+      items[linkId].linked.forEach((linkedItem) => {
+        const linkQId = linkedItem.enableWhen.question;
+        if (!linkedQuestionsMap[linkQId]) {
+          linkedQuestionsMap[linkQId] = [];
+        }
+
+        if (!linkedQuestionsMap[linkQId].includes(linkId)) {
+          linkedQuestionsMap[linkQId].push(linkId);
+        }
+      });
+    }
   }
+
   return linkedQuestionsMap;
 }
 
@@ -59,51 +68,73 @@ export function isEnabledAnswerTypeSwitcher(
   enableWhen: QuestionnaireItemEnableWhen,
   answer: QuestionnaireResponseItemAnswer
 ): boolean {
-  if (enableWhen['answerBoolean'] !== undefined && enableWhen.operator === 'exists') {
+  if (typeof enableWhen.answerBoolean === 'boolean' && enableWhen.operator === 'exists') {
     return answerOperatorSwitcher(enableWhen.answerBoolean, answer, enableWhen.operator);
-  } else if (enableWhen['answerBoolean'] !== undefined && answer.valueBoolean !== undefined) {
+  }
+
+  if (typeof enableWhen.answerBoolean === 'boolean' && typeof answer.valueBoolean === 'boolean') {
     return answerOperatorSwitcher(
       enableWhen.answerBoolean,
       answer.valueBoolean,
       enableWhen.operator
     );
-  } else if (enableWhen['answerDecimal'] && answer.valueDecimal) {
+  }
+
+  if (typeof enableWhen.answerDecimal === 'number' && typeof answer.valueDecimal === 'number') {
     return answerOperatorSwitcher(
       enableWhen.answerDecimal,
       answer.valueDecimal,
       enableWhen.operator
     );
-  } else if (enableWhen['answerInteger'] !== undefined && answer.valueInteger !== undefined) {
+  }
+
+  if (typeof enableWhen.answerInteger === 'number' && typeof answer.valueInteger === 'number') {
     return answerOperatorSwitcher(
       enableWhen.answerInteger,
       answer.valueInteger,
       enableWhen.operator
     );
-  } else if (enableWhen['answerDate'] && answer.valueDate) {
+  }
+
+  if (typeof enableWhen.answerDate === 'string' && typeof answer.valueDate === 'string') {
     return answerOperatorSwitcher(enableWhen.answerDate, answer.valueDate, enableWhen.operator);
-  } else if (enableWhen['answerDateTime'] && answer.valueDateTime) {
+  }
+
+  if (typeof enableWhen.answerDateTime === 'string' && typeof answer.valueDateTime === 'string') {
     return answerOperatorSwitcher(
       enableWhen.answerDateTime,
       answer.valueDateTime,
       enableWhen.operator
     );
-  } else if (enableWhen['answerTime'] && answer.valueTime) {
+  }
+
+  if (typeof enableWhen.answerTime === 'string' && typeof answer.valueTime === 'string') {
     return answerOperatorSwitcher(enableWhen.answerTime, answer.valueTime, enableWhen.operator);
-  } else if (enableWhen['answerString'] && answer.valueString) {
+  }
+
+  if (typeof enableWhen.answerString === 'string' && typeof answer.valueString === 'string') {
     return answerOperatorSwitcher(enableWhen.answerString, answer.valueString, enableWhen.operator);
-  } else if (enableWhen['answerCoding']?.code && answer.valueCoding?.code) {
+  }
+
+  if (
+    typeof enableWhen.answerCoding?.code === 'string' &&
+    typeof answer.valueCoding?.code === 'string'
+  ) {
     return answerOperatorSwitcher(
       enableWhen.answerCoding.code,
       answer.valueCoding.code,
       enableWhen.operator
     );
-  } else if (enableWhen['answerQuantity'] && answer.valueQuantity) {
+  }
+
+  if (enableWhen.answerQuantity && answer.valueQuantity) {
     return answerOperatorSwitcher(
       enableWhen.answerQuantity,
       answer.valueQuantity,
       enableWhen.operator
     );
   }
+
   return false;
 }
 
@@ -117,11 +148,11 @@ function answerOperatorSwitcher(
   value: boolean | string | number | Quantity | QuestionnaireResponseItemAnswer,
   operator: QuestionnaireItemEnableWhen['operator']
 ): boolean {
-  // FIXME runs even when the linked textbox is not changed
   switch (operator) {
-    case 'exists':
-      // check if value is an object and contains any answerValues
-      return typeof value === 'object' && Object.keys(value).length !== 0;
+    case 'exists': {
+      const answerExists = typeof value === 'object' && Object.keys(value).length !== 0;
+      return answerExists === expected;
+    }
     case '=':
       return value === expected;
     case '!=':
@@ -137,6 +168,36 @@ function answerOperatorSwitcher(
     default:
       return false;
   }
+}
+
+export function mutateRepeatEnableWhenItemInstances(
+  items: EnableWhenItems,
+  parentRepeatGroupLinkId: string,
+  parentRepeatGroupIndex: number,
+  actionType: 'add' | 'remove'
+): EnableWhenItems {
+  const { repeatItems } = items;
+
+  for (const linkId in repeatItems) {
+    for (const linkedItem of repeatItems[linkId].linked) {
+      if (linkedItem.parentLinkId !== parentRepeatGroupLinkId) {
+        continue;
+      }
+
+      if (actionType === 'add') {
+        linkedItem.answers.splice(parentRepeatGroupIndex, 0);
+        repeatItems[linkId].enabledIndexes[parentRepeatGroupIndex] = checkItemIsEnabledRepeat(
+          repeatItems[linkId],
+          parentRepeatGroupIndex
+        );
+      } else if (actionType === 'remove') {
+        linkedItem.answers.splice(parentRepeatGroupIndex, 1);
+        repeatItems[linkId].enabledIndexes.splice(parentRepeatGroupIndex, 1);
+      }
+    }
+  }
+
+  return items;
 }
 
 /**
@@ -203,7 +264,13 @@ export function setInitialAnswers(
       const linkedQuestions = linkedQuestionsMap[linkId];
       const newAnswer = initialAnswers[linkId];
 
-      updatedItems = updateItemAnswer(updatedItems, linkedQuestions, linkId, newAnswer);
+      updatedItems = updateEnableWhenItemAnswer(
+        updatedItems,
+        linkedQuestions,
+        linkId,
+        newAnswer,
+        null
+      );
     }
   }
   return updatedItems;
@@ -215,47 +282,132 @@ export function setInitialAnswers(
  *
  * @author Sean Fong
  */
-export function updateItemAnswer(
+export function updateEnableWhenItemAnswer(
   items: EnableWhenItems,
   linkedQuestions: string[],
   linkId: string,
-  newAnswer: QuestionnaireResponseItemAnswer[]
+  newAnswer: QuestionnaireResponseItemAnswer[] | undefined,
+  parentRepeatGroupIndex: number | null
 ): EnableWhenItems {
-  linkedQuestions.forEach((question) => {
-    // Update modified linked answer
-    items[question].linked.forEach((linkedItem) => {
-      if (linkedItem.enableWhen.question === linkId) {
-        linkedItem.answer = newAnswer ?? undefined;
-      }
-    });
+  const { singleItems, repeatItems } = items;
 
-    // Update enabled status of modified enableWhenItem
-    items[question].isEnabled = checkItemIsEnabled(items[question]);
-  });
+  for (const linkedQuestion of linkedQuestions) {
+    // Linked question is in single items
+    if (singleItems[linkedQuestion]) {
+      // Update modified linked answer
+      singleItems[linkedQuestion].linked.forEach((linkedItem) => {
+        if (linkedItem.enableWhen.question === linkId) {
+          linkedItem.answer = newAnswer ?? undefined;
+        }
+      });
+
+      // Update enabled status of modified enableWhenItem
+      singleItems[linkedQuestion].isEnabled = checkItemIsEnabledSingle(singleItems[linkedQuestion]);
+      continue;
+    }
+
+    // Linked question is in repeat items
+    if (repeatItems[linkedQuestion] && parentRepeatGroupIndex !== null) {
+      // Update modified linked answer
+      repeatItems[linkedQuestion].linked.forEach((linkedItem) => {
+        if (linkedItem.enableWhen.question === linkId) {
+          if (newAnswer) {
+            linkedItem.answers[parentRepeatGroupIndex] = newAnswer[0] ?? undefined;
+          } else {
+            delete linkedItem.answers[parentRepeatGroupIndex];
+          }
+        }
+      });
+
+      // Update enabled status of modified enableWhenItem
+      repeatItems[linkedQuestion].enabledIndexes[parentRepeatGroupIndex] = checkItemIsEnabledRepeat(
+        repeatItems[linkedQuestion],
+        parentRepeatGroupIndex
+      );
+    }
+  }
+
   return items;
 }
 
 /**
- * Check if an enableWhenItem is enabled based on the answer of its linked items
+ * Check if a single enableWhenItem is enabled based on the answer of its linked items
  *
  * @author Sean Fong
  */
-export function checkItemIsEnabled(enableWhenItemProperties: EnableWhenItemProperties): boolean {
+export function checkItemIsEnabledSingle(
+  enableWhenItemProperties: EnableWhenSingleItemProperties
+): boolean {
   const checkedIsEnabledItems: boolean[] = [];
 
-  enableWhenItemProperties.linked.forEach((linkedItem) => {
+  for (const linkedItem of enableWhenItemProperties.linked) {
     if (linkedItem.answer && linkedItem.answer.length > 0) {
-      linkedItem.answer.forEach((answer) => {
-        checkedIsEnabledItems.push(isEnabledAnswerTypeSwitcher(linkedItem.enableWhen, answer));
-      });
+      for (const answer of linkedItem.answer) {
+        const isEnabledForThisLinkedItem = isEnabledAnswerTypeSwitcher(
+          linkedItem.enableWhen,
+          answer
+        );
+
+        // In a repeat item, if at least one answer satisfies the condition, the item is enabled
+        if (isEnabledForThisLinkedItem) {
+          checkedIsEnabledItems.push(isEnabledAnswerTypeSwitcher(linkedItem.enableWhen, answer));
+          break;
+        }
+      }
+      continue;
     }
-  });
 
-  if (checkedIsEnabledItems.length === 0) return false;
+    // Linked item doesn't have any answers, but we still have to check for unanswered booleans
+    if (evaluateNonExistentAnswers(linkedItem.enableWhen)) {
+      checkedIsEnabledItems.push(true);
+    }
+  }
 
-  return enableWhenItemProperties.enableBehavior === 'any'
-    ? checkedIsEnabledItems.some((isEnabled) => isEnabled)
-    : checkedIsEnabledItems.every((isEnabled) => isEnabled);
+  if (checkedIsEnabledItems.length === 0) {
+    return false;
+  }
+
+  return evaluateEnableBehaviour(checkedIsEnabledItems, enableWhenItemProperties.enableBehavior);
+}
+
+/**
+ * Check if a repeat enableWhenItem is enabled based on the answer of its linked items
+ *
+ * @author Sean Fong
+ */
+export function checkItemIsEnabledRepeat(
+  enableWhenItemProperties: EnableWhenRepeatItemProperties,
+  parentRepeatGroupIndex: number
+): boolean {
+  const checkedIsEnabledItems: boolean[] = [];
+
+  for (const linkedItem of enableWhenItemProperties.linked) {
+    const linkedAnswer = linkedItem.answers[parentRepeatGroupIndex];
+    if (linkedAnswer) {
+      const isEnabledForThisLinkedItem = isEnabledAnswerTypeSwitcher(
+        linkedItem.enableWhen,
+        linkedAnswer
+      );
+
+      if (isEnabledForThisLinkedItem) {
+        checkedIsEnabledItems.push(
+          isEnabledAnswerTypeSwitcher(linkedItem.enableWhen, linkedAnswer)
+        );
+      }
+      continue;
+    }
+
+    // Linked item doesn't have any answers, but we still have to check for unanswered booleans
+    if (evaluateNonExistentAnswers(linkedItem.enableWhen)) {
+      checkedIsEnabledItems.push(true);
+    }
+  }
+
+  if (checkedIsEnabledItems.length === 0) {
+    return false;
+  }
+
+  return evaluateEnableBehaviour(checkedIsEnabledItems, enableWhenItemProperties.enableBehavior);
 }
 
 export function assignPopulatedAnswersToEnableWhen(
@@ -264,7 +416,7 @@ export function assignPopulatedAnswersToEnableWhen(
 ): { initialisedItems: EnableWhenItems; linkedQuestions: Record<string, string[]> } {
   const linkedQuestions = createEnableWhenLinkedQuestions(items);
   const initialAnswers = readInitialAnswers(questionnaireResponse, linkedQuestions);
-  items = initialiseBooleanFalses(items);
+  items = initialiseUnansweredBooleans(items);
 
   const initialisedItems =
     Object.keys(initialAnswers).length > 0
@@ -274,30 +426,50 @@ export function assignPopulatedAnswersToEnableWhen(
   return { initialisedItems, linkedQuestions };
 }
 
-function initialiseBooleanFalses(items: EnableWhenItems): EnableWhenItems {
-  for (const linkId in items) {
-    const checkedIsEnabledItems: boolean[] = [];
-    const enableWhenItemProperties = items[linkId];
+function initialiseUnansweredBooleans(items: EnableWhenItems): EnableWhenItems {
+  const { singleItems, repeatItems } = items;
 
-    for (const linkedItem of enableWhenItemProperties.linked) {
-      if (linkedItem.enableWhen.answerBoolean === true && linkedItem.enableWhen.operator === '!=') {
-        checkedIsEnabledItems.push(true);
-        continue;
-      }
+  // Initialise unanswered booleans for enableWhen single items
+  for (const linkId in singleItems) {
+    const checkedIsEnabledItems = singleItems[linkId].linked.map((linkedItem) =>
+      evaluateNonExistentAnswers(linkedItem.enableWhen)
+    );
 
-      if (linkedItem.enableWhen.answerBoolean === false && linkedItem.enableWhen.operator === '=') {
-        checkedIsEnabledItems.push(true);
-        continue;
-      }
+    singleItems[linkId].isEnabled = evaluateEnableBehaviour(
+      checkedIsEnabledItems,
+      singleItems[linkId].enableBehavior
+    );
+  }
 
-      checkedIsEnabledItems.push(false);
-    }
+  // Initialise unanswered booleans for enableWhen repeat items
+  for (const linkId in repeatItems) {
+    const checkedIsEnabledItems = repeatItems[linkId].linked.map((linkedItem) =>
+      evaluateNonExistentAnswers(linkedItem.enableWhen)
+    );
 
-    enableWhenItemProperties.isEnabled =
-      enableWhenItemProperties.enableBehavior === 'any'
-        ? checkedIsEnabledItems.some((isEnabled) => isEnabled)
-        : checkedIsEnabledItems.every((isEnabled) => isEnabled);
+    const isEnabled = evaluateEnableBehaviour(
+      checkedIsEnabledItems,
+      repeatItems[linkId].enableBehavior
+    );
+    repeatItems[linkId].enabledIndexes = repeatItems[linkId].enabledIndexes.map(() => isEnabled);
   }
 
   return items;
+}
+
+// Internal functions
+function evaluateNonExistentAnswers(enableWhen: QuestionnaireItemEnableWhen) {
+  const unansweredBoolean =
+    typeof enableWhen.answerBoolean === 'boolean' && enableWhen.operator === '!=';
+  const unExistingAnswer = enableWhen.answerBoolean === false && enableWhen.operator === 'exists';
+  return unansweredBoolean || unExistingAnswer;
+}
+
+function evaluateEnableBehaviour(
+  isEnabledArr: boolean[],
+  enableBehavior: 'all' | 'any' | undefined
+) {
+  return enableBehavior === 'any'
+    ? isEnabledArr.some((isEnabled) => isEnabled)
+    : isEnabledArr.every((isEnabled) => isEnabled);
 }

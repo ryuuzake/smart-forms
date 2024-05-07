@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,7 +55,7 @@ function DecimalField(props: DecimalFieldProps) {
       onChange={(event) => onInputChange(event.target.value)}
       disabled={readOnly}
       label={displayPrompt}
-      placeholder={entryFormat}
+      placeholder={entryFormat === '' ? '0.0' : entryFormat}
       fullWidth
       isTabled={isTabled}
       size="small"
@@ -68,6 +68,7 @@ function DecimalField(props: DecimalFieldProps) {
           </InputAdornment>
         )
       }}
+      helperText={feedback}
       data-test="q-item-decimal-field"
     />
   );

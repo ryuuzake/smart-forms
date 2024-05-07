@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,7 @@ import { ChoiceItemOrientation } from '../../../interfaces/choice.enum';
 import CheckboxSingle from '../ItemParts/CheckboxSingle';
 import CheckboxSingleWithOpenLabel from '../ItemParts/CheckboxSingleWithOpenLabel';
 import type { QuestionnaireItem, QuestionnaireResponseItemAnswer } from 'fhir/r4';
+import { getChoiceOrientation } from '../../../utils/choice';
 
 interface OpenChoiceCheckboxAnswerOptionFieldsProps {
   qItem: QuestionnaireItem;
@@ -29,7 +30,6 @@ interface OpenChoiceCheckboxAnswerOptionFieldsProps {
   openLabelValue: string;
   openLabelChecked: boolean;
   readOnly: boolean;
-  orientation: ChoiceItemOrientation;
   onValueChange: (changedOptionValue: string | null, changedOpenLabelValue: string | null) => void;
   onOpenLabelCheckedChange: (checked: boolean) => void;
   onOpenLabelInputChange: (input: string) => void;
@@ -43,11 +43,12 @@ function OpenChoiceCheckboxAnswerOptionFields(props: OpenChoiceCheckboxAnswerOpt
     openLabelValue,
     openLabelChecked,
     readOnly,
-    orientation,
     onValueChange,
     onOpenLabelCheckedChange,
     onOpenLabelInputChange
   } = props;
+
+  const orientation = getChoiceOrientation(qItem) ?? ChoiceItemOrientation.Vertical;
 
   return (
     <StyledFormGroup row={orientation === ChoiceItemOrientation.Horizontal}>

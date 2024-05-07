@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,20 @@ export function parseValidNumericString(input: string): string {
   return input;
 }
 
+export function parseIntegerString(input: string): string {
+  if (input === '') {
+    return '';
+  }
+
+  input = parseValidNumericString(input);
+  return parseInt(input).toString();
+}
+
 export function parseDecimalStringWithPrecision(input: string, precision: number | null): string {
+  if (input === '') {
+    return '';
+  }
+
   input = parseValidNumericString(input);
 
   let parsedInput = parseFloat(input).toString();
@@ -46,7 +59,7 @@ export function parseDecimalStringWithPrecision(input: string, precision: number
 
   // truncate decimal digits based on precision
   const parsedDecimalPoint = input.indexOf('.');
-  if (precision && parsedDecimalPoint !== -1) {
+  if (typeof precision === 'number' && parsedDecimalPoint !== -1) {
     parsedInput = parsedInput.substring(0, parsedDecimalPoint + precision + 1);
   }
 

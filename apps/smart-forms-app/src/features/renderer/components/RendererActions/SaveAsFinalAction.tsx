@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,10 +26,11 @@ import RendererOperationItem from '../RendererNav/RendererOperationItem.tsx';
 
 interface SaveAsFinalActionProps extends SpeedDialActionProps {
   isSpeedDial?: boolean;
+  onClose?: () => void;
 }
 
 function SaveAsFinalAction(props: SaveAsFinalActionProps) {
-  const { isSpeedDial, ...speedDialActionProps } = props;
+  const { isSpeedDial, onClose, ...speedDialActionProps } = props;
 
   const { smartClient } = useSmartClient();
 
@@ -39,6 +40,10 @@ function SaveAsFinalAction(props: SaveAsFinalActionProps) {
   const formChangesHistory = useQuestionnaireResponseStore.use.formChangesHistory();
 
   function handleOpenDialog() {
+    if (onClose) {
+      onClose();
+    }
+
     if (smartClient) {
       setSaveAsFinalDialogOpen(true);
     }

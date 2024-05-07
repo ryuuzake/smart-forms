@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,13 +29,14 @@ import useFetchExistingResponses from '../../../dashboard/hooks/useFetchExisting
 
 interface RendererEmbeddedLaunchQuestionnaireActionsProps extends SpeedDialActionProps {
   spinner: RendererSpinner;
+  onClose: () => void;
   onSpinnerChange: (newSpinner: RendererSpinner) => void;
 }
 
 function RendererEmbeddedLaunchQuestionnaireActions(
   props: RendererEmbeddedLaunchQuestionnaireActionsProps
 ) {
-  const { spinner, onSpinnerChange, ...speedDialActionProps } = props;
+  const { spinner, onClose, onSpinnerChange, ...speedDialActionProps } = props;
 
   const { smartClient } = useSmartClient();
 
@@ -57,10 +58,11 @@ function RendererEmbeddedLaunchQuestionnaireActions(
         <PreviewAction isSpeedDial={true} {...speedDialActionProps} />
         <SaveProgressAction
           isSpeedDial={true}
+          onClose={onClose}
           refetchResponses={refetchResponses}
           {...speedDialActionProps}
         />
-        <SaveAsFinalAction isSpeedDial={true} {...speedDialActionProps} />
+        <SaveAsFinalAction isSpeedDial={true} onClose={onClose} {...speedDialActionProps} />
         <RepopulateAction
           spinner={spinner}
           onSpinnerChange={onSpinnerChange}

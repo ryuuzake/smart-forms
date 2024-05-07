@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,6 +29,7 @@ import type {
 } from '../../../interfaces/renderProps.interface';
 import type { QuestionnaireItem } from 'fhir/r4';
 import type { AttachmentValues } from './AttachmentItem';
+import { useQuestionnaireStore } from '../../../stores';
 
 interface AttachmentFieldWrapperProps
   extends PropsWithIsRepeatedAttribute,
@@ -53,6 +54,8 @@ function AttachmentFieldWrapper(props: AttachmentFieldWrapperProps) {
     onFileNameChange
   } = props;
 
+  const onFocusLinkId = useQuestionnaireStore.use.onFocusLinkId();
+
   if (isRepeated) {
     return (
       <AttachmentField
@@ -68,7 +71,10 @@ function AttachmentFieldWrapper(props: AttachmentFieldWrapperProps) {
   }
 
   return (
-    <FullWidthFormComponentBox data-test="q-item-attachment-box">
+    <FullWidthFormComponentBox
+      data-test="q-item-attachment-box"
+      data-linkid={qItem.linkId}
+      onClick={() => onFocusLinkId(qItem.linkId)}>
       <ItemFieldGrid qItem={qItem} readOnly={readOnly}>
         <AttachmentField
           linkId={qItem.linkId}

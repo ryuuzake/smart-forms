@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,7 @@
  */
 
 import type { FetchResourceCallback, InputParameters, OutputParameters } from '../interfaces';
-import type { OperationOutcome, OperationOutcomeIssue, Reference } from 'fhir/r4';
+import type { Encounter, OperationOutcome, OperationOutcomeIssue, Reference } from 'fhir/r4';
 import { fetchQuestionnaire } from '../api/fetchQuestionnaire';
 import { isSubjectParameter } from './index';
 import { createFhirPathContext } from './createFhirPathContext';
@@ -26,10 +26,13 @@ import { sortResourceArrays } from './sortResourceArrays';
 import { constructResponse } from './constructResponse';
 import { createOutputParameters } from './createOutputParameters';
 import { removeEmptyAnswersFromResponse } from './removeEmptyAnswers';
+import { isEncounterContextParameter } from './typePredicates';
 
 /**
  * Main function of this populate module.
  * Input and output specific parameters conformant to the SDC populate specification.
+ * @see {@link https://hl7.org/fhir/uv/sdc/OperationDefinition-Questionnaire-populate.html}
+ * Added populationContextResults for visual and debugging purposes.
  *
  * @author Sean Fong
  */
@@ -47,6 +50,8 @@ export async function populate(
 
   const subjectReference = parameters.parameter.find((param) => isSubjectParameter(param))
     ?.valueReference as Reference;
+  const encounter = parameters.parameter.find((param) => isEncounterContextParameter(param))
+    ?.part?.[1].resource as Encounter | undefined;
 
   // Create contextMap to hold variables for population
   let fhirPathContext = await createFhirPathContext(
@@ -77,15 +82,20 @@ export async function populate(
   );
 
   // Construct response from initialExpressions
-  const questionnaireResponse = await constructResponse(questionnaire, subjectReference, {
-    initialExpressions: evaluatedInitialExpressions,
-    itemPopulationContexts: evaluatedItemPopulationContexts
-  });
+  const questionnaireResponse = await constructResponse(
+    questionnaire,
+    subjectReference,
+    {
+      initialExpressions: evaluatedInitialExpressions,
+      itemPopulationContexts: evaluatedItemPopulationContexts
+    },
+    encounter
+  );
 
   const cleanQuestionnaireResponse = removeEmptyAnswersFromResponse(
     questionnaire,
     questionnaireResponse
   );
 
-  return createOutputParameters(cleanQuestionnaireResponse, issues);
+  return createOutputParameters(cleanQuestionnaireResponse, issues, fhirPathContext);
 }

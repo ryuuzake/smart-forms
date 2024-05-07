@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,10 +17,10 @@
 
 import type { QuestionnaireItem } from 'fhir/r4';
 import { useQuestionnaireStore } from '../stores';
-import { isHiddenByEnableWhens } from '../utils/qItem';
+import { isHiddenByEnableWhen } from '../utils/qItem';
 import { structuredDataCapture } from 'fhir-sdc-helpers';
 
-function useHidden(qItem: QuestionnaireItem): boolean {
+function useHidden(qItem: QuestionnaireItem, parentRepeatGroupIndex?: number): boolean {
   const enableWhenIsActivated = useQuestionnaireStore.use.enableWhenIsActivated();
   const enableWhenItems = useQuestionnaireStore.use.enableWhenItems();
   const enableWhenExpressions = useQuestionnaireStore.use.enableWhenExpressions();
@@ -29,11 +29,12 @@ function useHidden(qItem: QuestionnaireItem): boolean {
     return true;
   }
 
-  return isHiddenByEnableWhens({
+  return isHiddenByEnableWhen({
     linkId: qItem.linkId,
     enableWhenIsActivated,
     enableWhenItems,
-    enableWhenExpressions
+    enableWhenExpressions,
+    parentRepeatGroupIndex
   });
 }
 

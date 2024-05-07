@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Commonwealth Scientific and Industrial Research
+ * Copyright 2024 Commonwealth Scientific and Industrial Research
  * Organisation (CSIRO) ABN 41 687 119 230.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,6 +30,9 @@ import type {
 import ChoiceSelectAnswerValueSetFields from './ChoiceSelectAnswerValueSetFields';
 import useReadOnly from '../../../hooks/useReadOnly';
 import ItemFieldGrid from '../ItemParts/ItemFieldGrid';
+import { useQuestionnaireStore } from '../../../stores';
+import useCodingCalculatedExpression from '../../../hooks/useCodingCalculatedExpression';
+import { convertCodingsToAnswerOptions, findInAnswerOptions } from '../../../utils/choice';
 
 interface ChoiceSelectAnswerValueSetItemProps
   extends PropsWithQrItemChangeHandler,
@@ -42,6 +45,8 @@ interface ChoiceSelectAnswerValueSetItemProps
 
 function ChoiceSelectAnswerValueSetItem(props: ChoiceSelectAnswerValueSetItemProps) {
   const { qItem, qrItem, isRepeated, isTabled, parentIsReadOnly, onQrItemChange } = props;
+
+  const onFocusLinkId = useQuestionnaireStore.use.onFocusLinkId();
 
   const readOnly = useReadOnly(qItem, parentIsReadOnly);
 
@@ -76,6 +81,25 @@ function ChoiceSelectAnswerValueSetItem(props: ChoiceSelectAnswerValueSetItemPro
     []
   );
 
+  const answerOptions = useMemo(() => convertCodingsToAnswerOptions(codings), [codings]);
+
+  // Process calculated expressions
+  const { calcExpUpdated } = useCodingCalculatedExpression({
+    qItem: qItem,
+    valueInString: valueCoding?.code ?? '',
+    onChangeByCalcExpressionString: (newValueString) => {
+      if (codings.length > 0) {
+        const qrAnswer = findInAnswerOptions(answerOptions, newValueString);
+        onQrItemChange(
+          qrAnswer ? { ...createEmptyQrItem(qItem), answer: [qrAnswer] } : createEmptyQrItem(qItem)
+        );
+      }
+    },
+    onChangeByCalcExpressionNull: () => {
+      onQrItemChange(createEmptyQrItem(qItem));
+    }
+  });
+
   // Event handlers
   function handleChange(newValue: Coding | null) {
     if (newValue) {
@@ -96,6 +120,7 @@ function ChoiceSelectAnswerValueSetItem(props: ChoiceSelectAnswerValueSetItemPro
         valueCoding={valueCoding}
         terminologyError={terminologyError}
         readOnly={readOnly}
+        calcExpUpdated={calcExpUpdated}
         isTabled={isTabled}
         onSelectChange={handleChange}
       />
@@ -103,7 +128,10 @@ function ChoiceSelectAnswerValueSetItem(props: ChoiceSelectAnswerValueSetItemPro
   }
 
   return (
-    <FullWidthFormComponentBox data-test="q-item-choice-dropdown-answer-value-set-box">
+    <FullWidthFormComponentBox
+      data-test="q-item-choice-dropdown-answer-value-set-box"
+      data-linkid={qItem.linkId}
+      onClick={() => onFocusLinkId(qItem.linkId)}>
       <ItemFieldGrid qItem={qItem} readOnly={readOnly}>
         <ChoiceSelectAnswerValueSetFields
           qItem={qItem}
@@ -111,6 +139,7 @@ function ChoiceSelectAnswerValueSetItem(props: ChoiceSelectAnswerValueSetItemPro
           valueCoding={valueCoding}
           terminologyError={terminologyError}
           readOnly={readOnly}
+          calcExpUpdated={calcExpUpdated}
           isTabled={isTabled}
           onSelectChange={handleChange}
         />
