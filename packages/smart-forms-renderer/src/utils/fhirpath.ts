@@ -62,7 +62,8 @@ export function evaluateUpdatedExpressions(params: EvaluateUpdatedExpressionsPar
   const updatedFhirPathContext = createFhirPathContext(
     updatedResponse,
     updatedResponseItemMap,
-    variablesFhirPath
+    variablesFhirPath,
+    existingFhirPathContext
   );
 
   // Update enableWhenExpressions
@@ -90,14 +91,19 @@ export function evaluateUpdatedExpressions(params: EvaluateUpdatedExpressionsPar
 export function createFhirPathContext(
   questionnaireResponse: QuestionnaireResponse,
   questionnaireResponseItemMap: Record<string, QuestionnaireResponseItem[]>,
-  variablesFhirPath: Record<string, Expression[]>
+  variablesFhirPath: Record<string, Expression[]>,
+  existingFhirPathContext: Record<string, any>
 ): Record<string, any> {
-  if (!questionnaireResponse.item) {
-    return {};
-  }
-
   // Add latest resource to fhirPathContext
-  let fhirPathContext: Record<string, any> = { resource: questionnaireResponse };
+  let fhirPathContext: Record<string, any> = {
+    ...existingFhirPathContext,
+    resource: questionnaireResponse
+  };
+
+  // Exit early if there are no QR items
+  if (!questionnaireResponse.item) {
+    return fhirPathContext;
+  }
 
   // Evaluate resource-level variables
   fhirPathContext = evaluateQuestionnaireLevelVariables(
