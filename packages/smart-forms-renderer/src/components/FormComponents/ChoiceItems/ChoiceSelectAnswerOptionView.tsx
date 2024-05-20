@@ -22,36 +22,41 @@ import type {
   PropsWithIsRepeatedAttribute,
   PropsWithIsTabledAttribute
 } from '../../../interfaces/renderProps.interface';
-import type { QuestionnaireItem } from 'fhir/r4';
+import type { QuestionnaireItem, QuestionnaireItemAnswerOption } from 'fhir/r4';
 import ChoiceSelectAnswerOptionFields from './ChoiceSelectAnswerOptionFields';
 
 interface ChoiceSelectAnswerOptionViewProps
   extends PropsWithIsRepeatedAttribute,
     PropsWithIsTabledAttribute {
   qItem: QuestionnaireItem;
+  options: QuestionnaireItemAnswerOption[];
   valueChoice: string | null;
   readOnly: boolean;
   calcExpUpdated: boolean;
   onSelectChange: (linkId: string) => void;
   onFocusLinkId: () => void;
+  onClear: () => void;
 }
 
 function ChoiceSelectAnswerOptionView(props: ChoiceSelectAnswerOptionViewProps) {
   const {
     qItem,
+    options,
     valueChoice,
     isRepeated,
     isTabled,
     readOnly,
     calcExpUpdated,
     onFocusLinkId,
-    onSelectChange
+    onSelectChange,
+    onClear
   } = props;
 
   if (isRepeated) {
     return (
       <ChoiceSelectAnswerOptionFields
         qItem={qItem}
+        options={options}
         valueSelect={valueChoice ?? ''}
         readOnly={readOnly}
         calcExpUpdated={calcExpUpdated}
@@ -69,6 +74,7 @@ function ChoiceSelectAnswerOptionView(props: ChoiceSelectAnswerOptionViewProps) 
       <ItemFieldGrid qItem={qItem} readOnly={readOnly}>
         <ChoiceSelectAnswerOptionFields
           qItem={qItem}
+          options={options}
           valueSelect={valueChoice ?? ''}
           readOnly={readOnly}
           calcExpUpdated={calcExpUpdated}

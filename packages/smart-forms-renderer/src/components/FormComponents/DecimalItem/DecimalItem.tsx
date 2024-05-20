@@ -40,6 +40,7 @@ import useDecimalCalculatedExpression from '../../../hooks/useDecimalCalculatedE
 import useStringInput from '../../../hooks/useStringInput';
 import useReadOnly from '../../../hooks/useReadOnly';
 import { useQuestionnaireStore } from '../../../stores';
+import Box from '@mui/material/Box';
 
 interface DecimalItemProps
   extends PropsWithQrItemChangeHandler,
@@ -91,7 +92,7 @@ function DecimalItem(props: DecimalItemProps) {
       );
       onQrItemChange({
         ...createEmptyQrItem(qItem),
-        answer: [{ valueInteger: newValueDecimal }]
+        answer: [{ valueDecimal: newValueDecimal }]
       });
     },
     onChangeByCalcExpressionNull: () => {
@@ -127,18 +128,20 @@ function DecimalItem(props: DecimalItemProps) {
 
   if (isRepeated) {
     return (
-      <DecimalField
-        linkId={qItem.linkId}
-        input={input}
-        feedback={feedback}
-        displayPrompt={displayPrompt}
-        displayUnit={displayUnit}
-        entryFormat={entryFormat}
-        readOnly={readOnly}
-        calcExpUpdated={calcExpUpdated}
-        isTabled={isTabled}
-        onInputChange={handleInputChange}
-      />
+      <Box data-test="q-item-decimal-box">
+        <DecimalField
+          linkId={qItem.linkId}
+          input={input}
+          feedback={feedback}
+          displayPrompt={displayPrompt}
+          displayUnit={displayUnit}
+          entryFormat={entryFormat}
+          readOnly={readOnly}
+          calcExpUpdated={calcExpUpdated}
+          isTabled={isTabled}
+          onInputChange={handleInputChange}
+        />
+      </Box>
     );
   }
 

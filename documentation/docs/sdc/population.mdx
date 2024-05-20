@@ -1,0 +1,378 @@
+---
+sidebar_position: 2
+---
+
+import IframeContainer from '../../src/react/IframeContainer';
+
+# Pre-population
+
+Pre-population is a mechanism to pre-fill form questions with information already present in the clinical system. It is a way to reduce the burden on the user to fill in information that is already known.
+
+For a detailed explanation, see the [Form Population](https://hl7.org/fhir/uv/sdc/populate.html) section in the SDC spec. Smart Forms supports [expression-based population](http://hl7.org/fhir/uv/sdc/populate.html#expression-based-population).
+
+The elements/extensions that fall under this category are:
+
+#### Extensions containing pre-population queries:
+
+- [launchContext](http://hl7.org/fhir/uv/sdc/expressions.html#launchContext)
+- [variable](http://hl7.org/fhir/uv/sdc/expressions.html#variable)
+- [x-fhir-query](http://hl7.org/fhir/uv/sdc/expressions.html#x-fhir-query-enhancements)
+- [sourceQueries](https://build.fhir.org/ig/HL7/sdc/populate.html#structuremap-based-population)
+- [itemPopulationContext](http://hl7.org/fhir/uv/sdc/expressions.html#itemPopulationContext)
+
+#### Elements/expressions defined at the question to be pre-populated:
+
+- [initial](http://hl7.org/fhir/uv/sdc/behavior.html#initial)
+- [initialExpression](http://hl7.org/fhir/uv/sdc/expressions.html#initialExpression)
+- [calculatedExpression](http://hl7.org/fhir/uv/sdc/expressions.html#calculatedExpression)
+
+### LaunchContext
+
+Allows information to be passed into the execution environment based on the context in which the Questionnaire is being pre-populated i.e patient, user, encounter, etc.
+
+The passed information is known as "in context" within the launching system, and is subsequently applied in pre-population queries.
+
+#### Example
+
+Below is an example of how a launchContext extension is defined in the questionnaire.
+It specifies that the patient in context is to be used to pre-populate the form.
+
+```json
+{
+  "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-launchContext",
+  "extension": [
+    {
+      "url": "name",
+      "valueCoding": {
+        "system": "http://hl7.org/fhir/uv/sdc/CodeSystem/launchContext",
+        "code": "patient"
+      }
+    },
+    {
+      "url": "type",
+      "valueCode": "Patient"
+    },
+    {
+      "url": "description",
+      "valueString": "The patient that is to be used to pre-populate the form"
+    }
+  ]
+}
+```
+
+In the below x-fhir-query variable, `{{%patient.id}}` is a reference to the launchContext extension defined above. During pre-population, the value of `{{%patient.id}}` will be replaced with the actual patient id before the query is executed.
+
+```json
+{
+  "url": "http://hl7.org/fhir/StructureDefinition/variable",
+  "valueExpression": {
+    "name": "Condition",
+    "language": "application/x-fhir-query",
+    "expression": "Condition?patient={{%patient.id}}"
+  }
+}
+```
+
+For usages, refer to initial, initialExpression, and calculatedExpression sections on this page.
+
+### X-FHIR-Query Variable
+
+The variable extension is used to define a variable that is available for use in expressions within the same item and any descendant items.
+
+When the variable is defined using the `application/x-fhir-query` language, it can be used to contain a query that is executed against the FHIR server during pre-population to retrieve the value to be used in the expression.
+
+For more information, refer to http://hl7.org/fhir/uv/sdc/expressions.html#x-fhir-query-enhancements.
+
+#### Example
+
+Below is an example of how a variable extension using the `application/x-fhir-query` language is defined in the questionnaire.
+
+It specifies a variable called "Condition" and it's value is to be retrieved by executing the query `Condition?patient={{%patient.id}}` on the launching system.
+`{{%patient.id}}` is a reference to a defined launchContext, which will be replaced with the actual patient ID before the query is executed.
+
+After the query is executed, the expression can be consumed by initialExpressions during the pre-population process.
+
+```json
+{
+  "url": "http://hl7.org/fhir/StructureDefinition/variable",
+  "valueExpression": {
+    "name": "Condition",
+    "language": "application/x-fhir-query",
+    "expression": "Condition?patient={{%patient.id}}"
+  }
+}
+```
+
+For usages, refer to initial, initialExpression, and calculatedExpression sections on this page.
+
+### SourceQueries
+
+The sourceQueries extension is used to contain a reference pointing to a [batch/transaction](http://hl7.org/fhir/R4/http.html#transaction) bundle containing queries to be executed against the FHIR server during pre-population.
+
+According to the SDC spec, the sourceQueries extension is meant to be used in [StructureMap-based population](http://hl7.org/fhir/uv/sdc/populate.html#structuremap-based-population) and not [Expression-based population](http://hl7.org/fhir/uv/sdc/populate.html#expression-based-population).
+Smart Forms supports the use of sourceQueries in Expression-based population for backward-compatibility of previously-defined questionnaires.
+It is encouraged to use the extensions defined in http://hl7.org/fhir/uv/sdc/populate.html#expression-based-population to be conformant.
+
+#### Example
+
+Below is an example of how the sourceQueries extension is defined in the questionnaire, and how an initialExpression can consume it.
+Note that this uses a expression-based population mechanism.
+
+It specifies a sourceQueries extension which references a contained batch resource called "PrePopQuery".
+During pre-processing, `{{%patient.id}}` instances in the batch will be replaced with the actual patient ID before the query is executed.
+
+```json
+{
+  "resourceType": "Questionnaire",
+  // ...
+  "contained": [
+    {
+      "resourceType": "Bundle",
+      "id": "PrePopQuery",
+      "type": "batch",
+      "entry": [
+        {
+          "fullUrl": "urn:uuid:38a25157-b8e4-42e4-9525-7954fed52553",
+          "request": {
+            "method": "GET",
+            "url": "Observation?code=8302-2&_count=1&_sort=-date&patient={{%patient.id}}"
+          }
+        }
+      ]
+    }
+  ],
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-sourceQueries",
+      "valueReference": {
+        "reference": "#PrePopQuery"
+      }
+    }
+  ]
+}
+```
+
+After the batch query is executed, it can be consumed by initialExpressions during the pre-population process like a regular Bundle resource.
+
+```json
+{
+  "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression",
+  "valueExpression": {
+    "language": "text/fhirpath",
+    "expression": "%PrePopQuery.entry[0].resource.entry.resource.value.value"
+  }
+}
+```
+
+#### Basic Usage
+
+<IframeContainer storyUrl="https://smartforms.csiro.au/storybook/index.html?path=/story/component-sdc-12-form-population--source-queries-bmi-calculator">
+  <iframe
+    src="https://smartforms.csiro.au/storybook/iframe.html?args=&id=component-sdc-12-form-population--source-queries-bmi-calculator"
+    width="100%"
+    height="310"
+  />
+</IframeContainer>
+
+:::tip
+
+Use the "Pre-populate form" button in the usage examples on this page to see pre-population in action.
+
+:::
+
+### ItemPopulationContext
+
+The itemPopulationContext extension is used to define a context that is available for use in initialExpressions during the pre-population process.
+In simple terms, it acts as a variable used to aid in pre-population. It is especially useful for pre-populating repeating groups.
+
+For more information, refer to http://hl7.org/fhir/uv/sdc/expressions.html#itemPopulationContext.
+
+#### Example
+
+Below is an example of how the itemPopulationContext extension is defined, and how initialExpressions can consume it.
+This is notably an example of pre-populating an [AU Core](https://build.fhir.org/ig/hl7au/au-fhir-core/) patient's home address repeating group.
+
+```json
+{
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-itemPopulationContext",
+      "valueExpression": {
+        "name": "HomeAddressRepeat",
+        "language": "text/fhirpath",
+        "expression": "%patient.address.where(use='home' and (type.empty() or type!='postal'))" // %patient is a reference to a launchContext patient resource
+      }
+    }
+  ],
+  "linkId": "home-address-repeat-group",
+  "type": "group",
+  "repeats": true,
+  "item": [
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%HomeAddressRepeat.select(line.join(', '))"
+          }
+        }
+      ],
+      "linkId": "street-address",
+      "definition": "http://hl7.org.au/fhir/StructureDefinition/au-address#Address.line",
+      "text": "Street address",
+      "type": "string"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%HomeAddressRepeat.city"
+          }
+        }
+      ],
+      "linkId": "city",
+      "definition": "http://hl7.org.au/fhir/StructureDefinition/au-address#Address.city",
+      "text": "City",
+      "type": "string"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%HomeAddressRepeat.state"
+          }
+        }
+      ],
+      "linkId": "state",
+      "definition": "http://hl7.org.au/fhir/StructureDefinition/au-address#Address.state",
+      "text": "State",
+      "type": "choice",
+      "answerValueSet": "https://healthterminologies.gov.au/fhir/ValueSet/australian-states-territories-2"
+    },
+    {
+      "extension": [
+        {
+          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression",
+          "valueExpression": {
+            "language": "text/fhirpath",
+            "expression": "%HomeAddressRepeat.postalCode"
+          }
+        }
+      ],
+      "linkId": "postcode",
+      "definition": "http://hl7.org.au/fhir/StructureDefinition/au-address#Address.postalCode",
+      "text": "Postcode",
+      "type": "string"
+    }
+  ]
+}
+```
+
+This example is available in Storybook under **Repeat Group Usage**.
+
+#### Repeat Group Usage
+
+<IframeContainer storyUrl="https://smartforms.csiro.au/storybook/index.html?path=/story/component-sdc-12-form-population--item-population-context-home-address">
+  <iframe
+    src="https://smartforms.csiro.au/storybook/iframe.html?args=&id=component-sdc-12-form-population--item-population-context-home-address"
+    width="100%"
+    height="550"
+  />
+</IframeContainer>
+
+#### Group Table Usage
+
+<IframeContainer storyUrl="https://smartforms.csiro.au/storybook/index.html?path=/story/component-sdc-12-form-population--item-population-context-medical-history">
+  <iframe
+    src="https://smartforms.csiro.au/storybook/iframe.html?args=&id=component-sdc-12-form-population--item-population-context-medical-history"
+    width="100%"
+    height="700"
+  />
+</IframeContainer>
+
+### Initial
+
+Allows one or more values to be pre-filled in the answer when initially rendering the questionnaire for user input. Initial values can't be specified for groups or display items.
+
+This uses answers defined in the questionnaire itself, instead of relying on a FHIR server to provide the initial values.
+
+Questions using answerOption can use `answerOption.initialSelected` as an alternative.
+
+:::note
+
+Multiple initial values can be used in repeating items. There can only be one initial value for non-repeating items.
+
+:::
+
+#### Basic Usage
+
+<IframeContainer storyUrl="https://smartforms.csiro.au/storybook/index.html?path=/story/component-sdc-9-1-4-form-behavior-other-control--initial-single">
+  <iframe
+    src="https://smartforms.csiro.au/storybook/iframe.html?args=&id=component-sdc-9-1-4-form-behavior-other-control--initial-single"
+    width="100%"
+    height="100"
+  />
+</IframeContainer>
+
+#### Repeats Usage
+
+<IframeContainer storyUrl="https://smartforms.csiro.au/storybook/index.html?path=/story/component-sdc-9-1-4-form-behavior-other-control--initial-repeats">
+  <iframe
+    src="https://smartforms.csiro.au/storybook/iframe.html?args=&id=component-sdc-9-1-4-form-behavior-other-control--initial-repeats"
+    width="100%"
+    height="390"
+  />
+</IframeContainer>
+
+### InitialExpression
+
+Allows one or more values to be pre-filled in the answer by evaluating its expression when it goes through the pre-population process.
+
+It relies on a source FHIR server, extensions defining pre-population queries i.e. launchContext, x-fhir-query variables, sourceQueries or itemPopulationContext, as well as FHIRPath evaluation to provide the initial values.
+
+For more information, refer to http://hl7.org/fhir/uv/sdc/expressions.html#initialExpression.
+
+#### Basic Usage
+
+<IframeContainer storyUrl="https://smartforms.csiro.au/storybook/index.html?path=/story/component-sdc-12-form-population--initial-expression">
+  <iframe
+    src="https://smartforms.csiro.au/storybook/iframe.html?args=&id=component-sdc-12-form-population--initial-expression"
+    width="100%"
+    height="100"
+  />
+</IframeContainer>
+
+Besides this basic usage, all the usage examples on this page utilizes InitialExpressions for pre-population.
+
+### CalculatedExpression
+
+CalculatedExpressions can be used in conjunction with InitialExpressions to calculate a value based on the initial values provided.
+
+For information related to using calculatedExpressions without pre-population, refer to [Calculations](/smart-forms/docs/sdc/calculations#calculatedexpression).
+
+In the two usage examples below, the final result i.e. BMI and CVD risk score are calculated based on the pre-populated initial values.
+
+#### BMI Calculation Usage
+
+<IframeContainer storyUrl="https://smartforms.csiro.au/storybook/index.html?path=/story/component-sdc-12-form-population--calculated-expression-bmi-calculator-prepop">
+  <iframe
+    src="https://smartforms.csiro.au/storybook/iframe.html?args=&id=component-sdc-12-form-population--calculated-expression-bmi-calculator-prepop"
+    width="100%"
+    height="310"
+  />
+</IframeContainer>
+
+#### Absolute Cardiovascular Risk Calculation usage
+
+<IframeContainer storyUrl="https://smartforms.csiro.au/storybook/index.html?path=/story/component-sdc-12-form-population--calculated-expression-cvd-risk-calculator-prepop">
+  <iframe
+    src="http://localhost:6006/iframe.html?args=&id=component-sdc-12-form-population--calculated-expression-cvd-risk-calculator-prepop"
+    width="100%"
+    height="960"
+  />
+</IframeContainer>

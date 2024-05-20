@@ -23,40 +23,46 @@ import type {
   PropsWithIsRepeatedAttribute,
   PropsWithIsTabledAttribute
 } from '../../../interfaces/renderProps.interface';
-import type { QuestionnaireItem } from 'fhir/r4';
+import type { QuestionnaireItem, QuestionnaireItemAnswerOption } from 'fhir/r4';
 
 interface ChoiceRadioAnswerOptionViewProps
   extends PropsWithIsRepeatedAttribute,
     PropsWithIsTabledAttribute {
   qItem: QuestionnaireItem;
+  options: QuestionnaireItemAnswerOption[];
   valueChoice: string | null;
   readOnly: boolean;
   calcExpUpdated: boolean;
   onCheckedChange: (linkId: string) => void;
   onFocusLinkId: () => void;
+  onClear: () => void;
 }
 
 function ChoiceRadioAnswerOptionView(props: ChoiceRadioAnswerOptionViewProps) {
   const {
     qItem,
+    options,
     valueChoice,
     isRepeated,
     isTabled,
     readOnly,
     calcExpUpdated,
     onFocusLinkId,
-    onCheckedChange
+    onCheckedChange,
+    onClear
   } = props;
 
   if (isRepeated) {
     return (
       <ChoiceRadioAnswerOptionFields
         qItem={qItem}
+        options={options}
         valueRadio={valueChoice}
         isTabled={isTabled}
         readOnly={readOnly}
         calcExpUpdated={calcExpUpdated}
         onCheckedChange={onCheckedChange}
+        onClear={onClear}
       />
     );
   }
@@ -69,11 +75,13 @@ function ChoiceRadioAnswerOptionView(props: ChoiceRadioAnswerOptionViewProps) {
       <ItemFieldGrid qItem={qItem} readOnly={readOnly}>
         <ChoiceRadioAnswerOptionFields
           qItem={qItem}
+          options={options}
           valueRadio={valueChoice}
           readOnly={readOnly}
           isTabled={isTabled}
           calcExpUpdated={calcExpUpdated}
           onCheckedChange={onCheckedChange}
+          onClear={onClear}
         />
       </ItemFieldGrid>
     </FullWidthFormComponentBox>

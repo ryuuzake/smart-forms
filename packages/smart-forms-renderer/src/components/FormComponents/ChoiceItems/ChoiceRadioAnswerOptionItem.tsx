@@ -53,6 +53,8 @@ function ChoiceRadioAnswerOptionItem(props: ChoiceRadioAnswerOptionItemProps) {
 
   const readOnly = useReadOnly(qItem, parentIsReadOnly);
 
+  const options = qItem.answerOption ?? [];
+
   // Process calculated expressions
   const { calcExpUpdated } = useCodingCalculatedExpression({
     qItem: qItem,
@@ -67,15 +69,19 @@ function ChoiceRadioAnswerOptionItem(props: ChoiceRadioAnswerOptionItemProps) {
 
   // Event handlers
   function handleChange(newValue: string) {
-    if (!qItem.answerOption) {
+    if (options.length === 0) {
       onQrItemChange(createEmptyQrItem(qItem));
       return;
     }
 
-    const qrAnswer = findInAnswerOptions(qItem.answerOption, newValue);
+    const qrAnswer = findInAnswerOptions(options, newValue);
     onQrItemChange(
       qrAnswer ? { ...createEmptyQrItem(qItem), answer: [qrAnswer] } : createEmptyQrItem(qItem)
     );
+  }
+
+  function handleClear() {
+    onQrItemChange(createEmptyQrItem(qItem));
   }
 
   // TODO This is in preparation of refactoring all choice answerOption fields into one component
@@ -87,6 +93,7 @@ function ChoiceRadioAnswerOptionItem(props: ChoiceRadioAnswerOptionItemProps) {
       return (
         <ChoiceRadioAnswerOptionView
           qItem={qItem}
+          options={options}
           valueChoice={valueChoice}
           isRepeated={isRepeated}
           isTabled={isTabled}
@@ -94,6 +101,7 @@ function ChoiceRadioAnswerOptionItem(props: ChoiceRadioAnswerOptionItemProps) {
           calcExpUpdated={calcExpUpdated}
           onFocusLinkId={() => onFocusLinkId(qItem.linkId)}
           onCheckedChange={handleChange}
+          onClear={handleClear}
         />
       );
     }
@@ -102,6 +110,7 @@ function ChoiceRadioAnswerOptionItem(props: ChoiceRadioAnswerOptionItemProps) {
       return (
         <ChoiceSelectAnswerOptionView
           qItem={qItem}
+          options={options}
           valueChoice={valueChoice}
           isRepeated={isRepeated}
           isTabled={isTabled}
@@ -109,6 +118,7 @@ function ChoiceRadioAnswerOptionItem(props: ChoiceRadioAnswerOptionItemProps) {
           calcExpUpdated={calcExpUpdated}
           onFocusLinkId={() => onFocusLinkId(qItem.linkId)}
           onSelectChange={handleChange}
+          onClear={handleClear}
         />
       );
     }

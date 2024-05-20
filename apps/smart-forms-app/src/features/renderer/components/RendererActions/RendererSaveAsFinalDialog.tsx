@@ -86,7 +86,7 @@ function RendererSaveAsFinalDialog(props: RendererSaveAsFinalDialogProps) {
     }
 
     setUpdatableResponseAsSaved(savedResponse);
-    enqueueSnackbar(saveAsFinalSuccessMessage, { variant: 'success' });
+    enqueueSnackbar(saveAsFinalSuccessMessage, { variant: 'success', action: <CloseSnackbar /> });
 
     // Wait until renderer.hasChanges is set to false before navigating away
     setTimeout(() => {
@@ -106,7 +106,10 @@ function RendererSaveAsFinalDialog(props: RendererSaveAsFinalDialogProps) {
       </DialogContent>
       <DialogActions>
         <Button onClick={handleClose}>Cancel</Button>
-        <LoadingButton loading={isSaving} onClick={handleSaveAsFinal}>
+        <LoadingButton
+          data-test="save-as-final-button"
+          loading={isSaving}
+          onClick={handleSaveAsFinal}>
           Save as final
         </LoadingButton>
       </DialogActions>

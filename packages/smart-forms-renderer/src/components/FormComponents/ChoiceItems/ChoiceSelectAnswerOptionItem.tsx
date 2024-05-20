@@ -52,6 +52,8 @@ function ChoiceSelectAnswerOptionItem(props: ChoiceSelectAnswerOptionItemProps) 
   const qrChoice = qrItem ?? createEmptyQrItem(qItem);
   const valueChoice = getQrChoiceValue(qrChoice);
 
+  const options = qItem.answerOption ?? [];
+
   // Process calculated expressions
   const { calcExpUpdated } = useCodingCalculatedExpression({
     qItem: qItem,
@@ -66,20 +68,25 @@ function ChoiceSelectAnswerOptionItem(props: ChoiceSelectAnswerOptionItemProps) 
 
   // Event handlers
   function handleChange(newValue: string) {
-    if (!qItem.answerOption) {
+    if (options.length === 0) {
       onQrItemChange(createEmptyQrItem(qItem));
       return;
     }
 
-    const qrAnswer = findInAnswerOptions(qItem.answerOption, newValue);
+    const qrAnswer = findInAnswerOptions(options, newValue);
     onQrItemChange(
       qrAnswer ? { ...createEmptyQrItem(qItem), answer: [qrAnswer] } : createEmptyQrItem(qItem)
     );
   }
 
+  function handleClear() {
+    onQrItemChange(createEmptyQrItem(qItem));
+  }
+
   return (
     <ChoiceSelectAnswerOptionView
       qItem={qItem}
+      options={options}
       valueChoice={valueChoice}
       readOnly={readOnly}
       calcExpUpdated={calcExpUpdated}
@@ -87,6 +94,7 @@ function ChoiceSelectAnswerOptionItem(props: ChoiceSelectAnswerOptionItemProps) 
       isTabled={isTabled}
       onFocusLinkId={() => onFocusLinkId(qItem.linkId)}
       onSelectChange={handleChange}
+      onClear={handleClear}
     />
   );
 }

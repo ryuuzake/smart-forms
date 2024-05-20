@@ -1,0 +1,157 @@
+---
+sidebar_position: 5
+---
+
+import IframeContainer from '../../src/react/IframeContainer';
+
+# Terminology Binding
+
+Standardised terminology can be used in FHIR Questionnaires via [codes](https://hl7.org/fhir/r4/terminologies.html) and [valueSets](https://www.hl7.org/fhir/r4/valueset.html) for interoperability purposes.
+
+The elements/extensions that fall under this category are:
+
+- [answerOption](http://hl7.org/fhir/uv/sdc/behavior.html#answerOption)
+- [answerValueSet](http://hl7.org/fhir/uv/sdc/behavior.html#answerValueSet)
+- [answerExpression](http://hl7.org/fhir/uv/sdc/expressions.html#answerExpression)
+
+:::note
+
+These three mechanisms are mutually exclusive. Only one should appear on the same item.
+
+:::
+
+Not all components support terminology binding. The following components support Not all components support calculated expressions. The following components support calculated expressions::
+
+| Components  |
+| ----------- |
+| choice      |
+| open-choice |
+
+### AnswerOption
+
+AnswerOption is used to specify a list of possible answers to a question. Each answer can be represented by a **integer**, **date**, **time**, **string**, **Coding** or **Reference** element.
+
+AnswerOption provides a way to initially set answer(s) as selected for a question via `answerOption.initialSelected`. However, multiple initial selections can only be used in repeating items. There can only be one initial selected value for non-repeating items.
+
+#### Basic usage
+
+- [choice](/smart-forms/docs/components/choice#answer-option)
+- [open-choice](/smart-forms/docs/components/open-choice#answer-option)
+
+#### Drop down usage
+
+- [choice](/smart-forms/docs/sdc/advanced/question#choice-answeroption-usage)
+
+#### Checkbox usage
+
+- [choice](/smart-forms/docs/sdc/advanced/question#choice-answeroption-usage-1)
+- [open-choice](/smart-forms/docs/sdc/advanced/question#open-choice-answeroption-usage)
+
+#### Radio button usage
+
+- [choice](/smart-forms/docs/sdc/advanced/question#choice-answeroption-usage-2)
+- [open-choice](/smart-forms/docs/sdc/advanced/question#open-choice-answeroption-usage-1)
+
+### AnswerValueSet
+
+AnswerValueSet allows a set of codes in a code system within a [valueSet](https://www.hl7.org/fhir/r4/valueset.html) to be used as a set of possible answers to a question.
+It also allows for the possibility of sharing a set of answers across multiple items within a single Questionnaire.
+
+There are two ways to define an answerValueSet:
+
+1. Referencing a ValueSet URL
+
+```
+{
+  "resourceType": "Questionnaire",
+  // ...
+  "item": [
+    {
+      // ...
+      "answerValueSet": "http://hl7.org/fhir/ValueSet/example-valueSet"
+    }
+  ]
+}
+```
+
+2. Referencing a ValueSet defined in a [contained resource](https://hl7.org/fhir/r4/references.html#contained)
+
+```json
+{
+  "resourceType": "Questionnaire",
+  // ...
+  "contained": [
+    {
+      "resourceType": "ValueSet",
+      "id": "example-value-set",
+      "url": "http://hl7.org/fhir/ValueSet/example-valueSet",
+      // ...
+      "expansion": [
+        {
+          "contains": [
+            {
+              "system": "http://hl7.org/fhir/ValueSet/example-valueSet",
+              "code": "code-1",
+              "display": "display-1"
+            },
+            {
+              "system": "http://hl7.org/fhir/ValueSet/example-valueSet",
+              "code": "code-2",
+              "display": "display-2"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "item": [
+    {
+      // ...
+      "answerValueSet": "#example-value-set"
+    }
+  ]
+}
+```
+
+#### Basic usage
+
+- [choice](/smart-forms/docs/components/choice#answer-value-set)
+- [open-choice](/smart-forms/docs/components/open-choice#answer-value-set)
+
+#### Auto-complete usage
+
+- [open-choice](/smart-forms/docs/sdc/advanced/question#open-choice-usage)
+
+#### Drop down usage
+
+- [choice](/smart-forms/docs/sdc/advanced/question#choice-answervalueset-usage)
+
+#### Checkbox usage
+
+- [choice](/smart-forms/docs/sdc/advanced/question#choice-answervalueset-usage-1)
+- [open-choice](/smart-forms/docs/sdc/advanced/question#open-choice-answervalueset-usage)
+
+#### Radio Button usage
+
+- [choice](/smart-forms/docs/sdc/advanced/question#choice-answervalueset-usage-2)
+- [open-choice](/smart-forms/docs/sdc/advanced/question#open-choice-answervalueset-usage-1)
+
+### AnswerExpression
+
+Allows specifying a FHIR Query or FHIRPath that resolves to be used as a set of possible answers to a question.
+
+:::warning
+
+Support for this extension is not thoroughly tested yet.
+
+:::
+
+#### Basic usage
+
+<IframeContainer storyUrl="https://smartforms.csiro.au/storybook/index.html?path=/story/component-sdc-9-1-2-form-behavior-choice-restriction--answer-expression">
+  <iframe
+    src="https://smartforms.csiro.au/storybook/iframe.html?args=&id=component-sdc-9-1-2-form-behavior-choice-restriction--answer-expression"
+    width="100%"
+    height="500"
+  />
+</IframeContainer>
