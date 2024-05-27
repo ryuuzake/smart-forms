@@ -25,7 +25,7 @@ import type {
 import type { Variables } from '../interfaces/variables.interface';
 import type { LaunchContext } from '../interfaces/populate.interface';
 import type { CalculatedExpression } from '../interfaces/calculatedExpression.interface';
-import type { EnableWhenExpressions, EnableWhenItems } from '../interfaces';
+import type { EnableWhenExpressions, EnableWhenItems } from '../interfaces/enableWhen.interface';
 import type { AnswerExpression } from '../interfaces/answerExpression.interface';
 import type { Tabs } from '../interfaces/tab.interface';
 import {
@@ -47,7 +47,47 @@ import { mutateRepeatEnableWhenExpressionInstances } from '../utils/enableWhenEx
 import { questionnaireResponseStore } from './questionnaireResponseStore';
 import { createQuestionnaireResponseItemMap } from '../utils/questionnaireResponseStoreUtils/updatableResponseItems';
 
-interface QuestionnaireStoreType {
+/**
+ * QuestionnaireStore properties and methods
+ * Properties can be accessed for fine-grain details.
+ * Methods are usually used internally, using them from an external source is not recommended.
+ *
+ * @property sourceQuestionnaire - FHIR R4 Questionnaire to render
+ * @property itemTypes - Key-value pair of item types `Record<linkId, item.type>`
+ * @property tabs - Key-value pair of tabs `Record<linkId, Tab>`
+ * @property currentTabIndex - Index of the current tab
+ * @property variables - Questionnaire variables object containing FHIRPath and x-fhir-query variables
+ * @property launchContexts - Key-value pair of launch contexts `Record<launch context name, launch context properties>`
+ * @property enableWhenItems - EnableWhenItems object containing enableWhen items and their linked questions
+ * @property enableWhenLinkedQuestions - Key-value pair of linked questions to enableWhen items `Record<linkId, linkIds of linked questions>`
+ * @property enableWhenIsActivated - Flag to turn enableWhen checks on/off
+ * @property enableWhenExpressions - EnableWhenExpressions object containing enableWhen expressions
+ * @property calculatedExpressions - Key-value pair of calculated expressions `Record<linkId, array of calculated expression properties>`
+ * @property answerExpressions - Key-value pair of answer expressions `Record<linkId, answer expression properties>`
+ * @property processedValueSetCodings - Key-value pair of processed value set codings `Record<valueSetUrl, codings>`
+ * @property processedValueSetUrls - Key-value pair of contained value set urls `Record<valueSetName, valueSetUrl>`
+ * @property cachedValueSetCodings - Key-value pair of cached value set codings `Record<valueSetUrl, codings>`
+ * @property fhirPathContext - Key-value pair of evaluated FHIRPath values `Record<variable name, evaluated value(s)>`
+ * @property populatedContext - Key-value pair of one-off pre-populated FHIRPath values `Record<variable/launchContext/sourceQueries batch name, evaluated value(s)>`
+ * @property focusedLinkId - LinkId of the currently focused item
+ * @property readOnly - Flag to set the form to read-only mode
+ * @property buildSourceQuestionnaire - Used to build the source questionnaire with the provided questionnaire and optionally questionnaire response, additional variables, terminology server url and readyOnly flag
+ * @property destroySourceQuestionnaire - Used to destroy the source questionnaire and reset all properties
+ * @property switchTab - Used to switch the current tab index
+ * @property markTabAsComplete - Used to mark a tab index as complete
+ * @property updateEnableWhenItem - Used to update linked enableWhen items by updating a question with a new answer
+ * @property mutateRepeatEnableWhenItems - Used to add or remove instances of repeating enableWhen items
+ * @property toggleEnableWhenActivation - Used to toggle enableWhen checks on/off
+ * @property updateExpressions - Used to update all SDC expressions based on the updated questionnaire response
+ * @property addCodingToCache - Used to add a coding to the cached value set codings
+ * @property updatePopulatedProperties - Used to update all SDC expressions based on a pre-populated questionnaire response
+ * @property onFocusLinkId - Used to set the focused linkId
+ * @property setPopulatedContext - Used to set the populated contexts (launchContext, sourceQueries, x-fhir-query vars) for debugging purposes
+ * @property setFormAsReadOnly - Used to set the form as read-only
+ *
+ * @author Sean Fong
+ */
+export interface QuestionnaireStoreType {
   sourceQuestionnaire: Questionnaire;
   itemTypes: Record<string, string>;
   tabs: Tabs;
@@ -97,8 +137,16 @@ interface QuestionnaireStoreType {
   ) => QuestionnaireResponse;
   onFocusLinkId: (linkId: string) => void;
   setPopulatedContext: (newPopulatedContext: Record<string, any>) => void;
+  setFormAsReadOnly: (readOnly: boolean) => void;
 }
 
+/**
+ * Questionnaire state management store which contains all properties and methods to manage the state of the questionnaire.
+ * This is the vanilla version of the store which can be used in non-React environments.
+ * @see QuestionnaireStoreType for available properties and methods.
+ *
+ * @author Sean Fong
+ */
 export const questionnaireStore = createStore<QuestionnaireStoreType>()((set, get) => ({
   sourceQuestionnaire: cloneDeep(emptyQuestionnaire),
   itemTypes: {},
@@ -349,7 +397,19 @@ export const questionnaireStore = createStore<QuestionnaireStoreType>()((set, ge
   setPopulatedContext: (newPopulatedContext: Record<string, any>) =>
     set(() => ({
       populatedContext: newPopulatedContext
+    })),
+  setFormAsReadOnly: (readOnly: boolean) =>
+    set(() => ({
+      readOnly: readOnly
     }))
 }));
 
+/**
+ * Questionnaire state management store which contains all properties and methods to manage the state of the questionnaire.
+ * This is the React version of the store which can be used as React hooks in React functional components.
+ * @see QuestionnaireStoreType for available properties and methods.
+ * @see questionnaireStore for the vanilla store.
+ *
+ * @author Sean Fong
+ */
 export const useQuestionnaireStore = createSelectors(questionnaireStore);

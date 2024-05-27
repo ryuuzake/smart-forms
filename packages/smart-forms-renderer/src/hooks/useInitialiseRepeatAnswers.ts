@@ -44,9 +44,9 @@ function useInitialiseRepeatAnswers(
 
       return initialRepeatAnswers;
     },
-    // init initialRepeatAnswers on first render only, leave dependency array empty
+    // Requires checking of both qItem and qrItem
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [qItem]
+    [qItem, qrItem]
   );
 }
 

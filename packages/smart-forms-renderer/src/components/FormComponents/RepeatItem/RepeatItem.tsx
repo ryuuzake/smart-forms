@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import type {
   PropsWithParentIsReadOnlyAttribute,
   PropsWithQrItemChangeHandler,
@@ -33,6 +33,7 @@ import useInitialiseRepeatAnswers from '../../../hooks/useInitialiseRepeatAnswer
 import ItemFieldGrid from '../ItemParts/ItemFieldGrid';
 import useReadOnly from '../../../hooks/useReadOnly';
 import { useQuestionnaireStore } from '../../../stores';
+import useRepeatAnswers from '../../../hooks/useRepeatAnswers';
 
 interface RepeatItemProps
   extends PropsWithQrItemChangeHandler,
@@ -43,6 +44,11 @@ interface RepeatItemProps
   groupCardElevation: number;
 }
 
+/**
+ * Main component to render a repeating, non-group Questionnaire item.
+ *
+ * @author Sean Fong
+ */
 function RepeatItem(props: RepeatItemProps) {
   const { qItem, qrItem, groupCardElevation, showMinimalView, parentIsReadOnly, onQrItemChange } =
     props;
@@ -53,7 +59,7 @@ function RepeatItem(props: RepeatItemProps) {
 
   const initialRepeatAnswers = useInitialiseRepeatAnswers(qItem, qrItem);
 
-  const [repeatAnswers, setRepeatAnswers] = useState(initialRepeatAnswers);
+  const [repeatAnswers, setRepeatAnswers] = useRepeatAnswers(initialRepeatAnswers);
 
   // Event Handlers
   function handleAnswerChange(newQrItem: QuestionnaireResponseItem, index: number) {

@@ -31,7 +31,28 @@ import { validateQuestionnaire } from '../utils/validateQuestionnaire';
 import { questionnaireStore } from './questionnaireStore';
 import { createQuestionnaireResponseItemMap } from '../utils/questionnaireResponseStoreUtils/updatableResponseItems';
 
-interface QuestionnaireResponseStoreType {
+/**
+ * QuestionnaireResponseStore properties and methods
+ * Properties can be accessed for fine-grain details.
+ * Methods are usually used internally, using them from an external source is not recommended.
+ *
+ * @property sourceResponse - The original response created when the form is first initialised i.e. empty, pre-populated, opened saved draft
+ * @property updatableResponse - The current state of the response that is being updated via form fields
+ * @property updatableResponseItems - Key-value pair of updatableResponse items `Record<linkId, QR.item(s)>`
+ * @property formChangesHistory - Array of form changes history in the form of deep-diff objects
+ * @property invalidItems - Key-value pair of invalid items based on defined value constraints in the questionnaire `Record<linkId, OperationOutcome>`
+ * @property responseIsValid - Whether there are any invalid items in the response
+ * @property validateQuestionnaire - Used to validate the questionnaire response based on the questionnaire
+ * @property buildSourceResponse - Used to build the source response when the form is first initialised
+ * @property setUpdatableResponseAsPopulated - Used to set a pre-populated response as the current response
+ * @property updateResponse - Used to update the current response
+ * @property setUpdatableResponseAsSaved - Used to set a saved response as the current response
+ * @property setUpdatableResponseAsEmpty - Used to set an empty response as the current response
+ * @property destroySourceResponse - Used to destroy the source response  and reset all properties
+ *
+ * @author Sean Fong
+ */
+export interface QuestionnaireResponseStoreType {
   sourceResponse: QuestionnaireResponse;
   updatableResponse: QuestionnaireResponse;
   updatableResponseItems: Record<string, QuestionnaireResponseItem[]>;
@@ -50,6 +71,13 @@ interface QuestionnaireResponseStoreType {
   destroySourceResponse: () => void;
 }
 
+/**
+ * QuestionnaireResponse state management store which contains all properties and methods to manage the state of the questionnaireResponse.
+ * This is the vanilla version of the store which can be used in non-React environments.
+ * @see QuestionnaireResponseStoreType for available properties and methods.
+ *
+ * @author Sean Fong
+ */
 export const questionnaireResponseStore = createStore<QuestionnaireResponseStoreType>()(
   (set, get) => ({
     sourceResponse: cloneDeep(emptyResponse),
@@ -62,16 +90,9 @@ export const questionnaireResponseStore = createStore<QuestionnaireResponseStore
       questionnaire: Questionnaire,
       updatedResponse: QuestionnaireResponse
     ) => {
-      const enableWhenIsActivated = questionnaireStore.getState().enableWhenIsActivated;
-      const enableWhenItems = questionnaireStore.getState().enableWhenItems;
-      const enableWhenExpressions = questionnaireStore.getState().enableWhenExpressions;
-
       const updatedInvalidItems = validateQuestionnaire({
         questionnaire,
-        questionnaireResponse: updatedResponse,
-        enableWhenIsActivated,
-        enableWhenItems,
-        enableWhenExpressions
+        questionnaireResponse: updatedResponse
       });
 
       set(() => ({
@@ -80,49 +101,99 @@ export const questionnaireResponseStore = createStore<QuestionnaireResponseStore
       }));
     },
     buildSourceResponse: (questionnaireResponse: QuestionnaireResponse) => {
+      const sourceQuestionnaire = questionnaireStore.getState().sourceQuestionnaire;
+      const initialInvalidItems = validateQuestionnaire({
+        questionnaire: sourceQuestionnaire,
+        questionnaireResponse: questionnaireResponse
+      });
+
       set(() => ({
         sourceResponse: questionnaireResponse,
         updatableResponse: questionnaireResponse,
-        updatableResponseItems: createQuestionnaireResponseItemMap(questionnaireResponse)
+        updatableResponseItems: createQuestionnaireResponseItemMap(questionnaireResponse),
+        invalidItems: initialInvalidItems,
+        responseIsValid: Object.keys(initialInvalidItems).length === 0
       }));
     },
     setUpdatableResponseAsPopulated: (populatedResponse: QuestionnaireResponse) => {
+      const sourceQuestionnaire = questionnaireStore.getState().sourceQuestionnaire;
       const formChanges = diff(get().updatableResponse, populatedResponse) ?? null;
+      const updatedInvalidItems = validateQuestionnaire({
+        questionnaire: sourceQuestionnaire,
+        questionnaireResponse: populatedResponse
+      });
       set(() => ({
         updatableResponse: populatedResponse,
         updatableResponseItems: createQuestionnaireResponseItemMap(populatedResponse),
-        formChangesHistory: [...get().formChangesHistory, formChanges]
+        formChangesHistory: [...get().formChangesHistory, formChanges],
+        invalidItems: updatedInvalidItems,
+        responseIsValid: Object.keys(updatedInvalidItems).length === 0
       }));
     },
     updateResponse: (updatedResponse: QuestionnaireResponse) => {
+      const sourceQuestionnaire = questionnaireStore.getState().sourceQuestionnaire;
       const formChanges = diff(get().updatableResponse, updatedResponse) ?? null;
+      const updatedInvalidItems = validateQuestionnaire({
+        questionnaire: sourceQuestionnaire,
+        questionnaireResponse: updatedResponse
+      });
       set(() => ({
         updatableResponse: updatedResponse,
         updatableResponseItems: createQuestionnaireResponseItemMap(updatedResponse),
-        formChangesHistory: [...get().formChangesHistory, formChanges]
+        formChangesHistory: [...get().formChangesHistory, formChanges],
+        invalidItems: updatedInvalidItems,
+        responseIsValid: Object.keys(updatedInvalidItems).length === 0
       }));
     },
-    setUpdatableResponseAsSaved: (savedResponse: QuestionnaireResponse) =>
+    setUpdatableResponseAsSaved: (savedResponse: QuestionnaireResponse) => {
+      const sourceQuestionnaire = questionnaireStore.getState().sourceQuestionnaire;
+      const updatedInvalidItems = validateQuestionnaire({
+        questionnaire: sourceQuestionnaire,
+        questionnaireResponse: savedResponse
+      });
+
       set(() => ({
         sourceResponse: savedResponse,
         updatableResponse: savedResponse,
         updatableResponseItems: createQuestionnaireResponseItemMap(savedResponse),
-        formChangesHistory: []
-      })),
-    setUpdatableResponseAsEmpty: (clearedResponse: QuestionnaireResponse) =>
+        formChangesHistory: [],
+        invalidItems: updatedInvalidItems,
+        responseIsValid: Object.keys(updatedInvalidItems).length === 0
+      }));
+    },
+    setUpdatableResponseAsEmpty: (clearedResponse: QuestionnaireResponse) => {
+      const sourceQuestionnaire = questionnaireStore.getState().sourceQuestionnaire;
+      const updatedInvalidItems = validateQuestionnaire({
+        questionnaire: sourceQuestionnaire,
+        questionnaireResponse: clearedResponse
+      });
+
       set(() => ({
         updatableResponse: clearedResponse,
         updatableResponseItems: createQuestionnaireResponseItemMap(clearedResponse),
-        formChangesHistory: []
-      })),
+        formChangesHistory: [],
+        invalidItems: updatedInvalidItems,
+        responseIsValid: Object.keys(updatedInvalidItems).length === 0
+      }));
+    },
     destroySourceResponse: () =>
       set(() => ({
         sourceResponse: cloneDeep(emptyResponse),
         updatableResponse: cloneDeep(emptyResponse),
         updatableResponseItems: createQuestionnaireResponseItemMap(cloneDeep(emptyResponse)),
-        formChangesHistory: []
+        formChangesHistory: [],
+        invalidItems: {},
+        responseIsValid: true
       }))
   })
 );
 
+/**
+ * QuestionnaireResponse state management store which contains all properties and methods to manage the state of the questionnaire.
+ * This is the React version of the store which can be used as React hooks in React functional components.
+ * @see QuestionnaireResponseStoreType for available properties and methods.
+ * @see questionnaireResponseStore for the vanilla store.
+ *
+ * @author Sean Fong
+ */
 export const useQuestionnaireResponseStore = createSelectors(questionnaireResponseStore);

@@ -26,9 +26,22 @@ import _isEqual from 'lodash/isEqual';
 import { containsTabs, isTabContainer } from './tabs';
 import { getShortText, isSpecificItemControl } from './itemControl';
 import { getQrItemsIndex, mapQItemsIndex } from './mapItem';
-import type { EnableWhenExpressions, EnableWhenItems } from '../interfaces';
+import type { EnableWhenExpressions, EnableWhenItems } from '../interfaces/enableWhen.interface';
 import { isHiddenByEnableWhen } from './qItem';
+import { questionnaireResponseStore, questionnaireStore } from '../stores';
 
+/**
+ * ItemToRepopulate interface
+ *
+ * @property qItem - The QuestionnaireItem to repopulate
+ * @property heading - The heading of the group to repopulate
+ * @property newQRItem - The new QuestionnaireResponseItem to replace the old one
+ * @property oldQRItem - The old QuestionnaireResponseItem to be replaced
+ * @property newQRItems - The new QuestionnaireResponseItems to replace the old ones
+ * @property oldQRItems - The old QuestionnaireResponseItems to be replaced
+ *
+ * @author Sean Fong
+ */
 export interface ItemToRepopulate {
   qItem: QuestionnaireItem | null;
   heading: string | null;
@@ -50,6 +63,30 @@ interface getItemsToRepopulateParams {
   enableWhenIsActivated: boolean;
   enableWhenItems: EnableWhenItems;
   enableWhenExpressions: EnableWhenExpressions;
+}
+
+/**
+ * Compare latest data from the server with the current QuestionnaireResponse and decide items to re-populate
+ *
+ * @author Sean Fong
+ */
+export function generateItemsToRepopulate(populatedResponse: QuestionnaireResponse) {
+  const sourceQuestionnaire = questionnaireStore.getState().sourceQuestionnaire;
+  const tabs = questionnaireStore.getState().tabs;
+  const updatableResponse = questionnaireResponseStore.getState().updatableResponse;
+  const enableWhenIsActivated = questionnaireStore.getState().enableWhenIsActivated;
+  const enableWhenItems = questionnaireStore.getState().enableWhenItems;
+  const enableWhenExpressions = questionnaireStore.getState().enableWhenExpressions;
+
+  return getItemsToRepopulate({
+    sourceQuestionnaire,
+    tabs,
+    populatedResponse,
+    updatableResponse,
+    enableWhenIsActivated,
+    enableWhenItems,
+    enableWhenExpressions
+  });
 }
 
 export function getItemsToRepopulate(

@@ -9,7 +9,7 @@
     "start": "vite",
     "build": "tsc && CI=false vite build",
     "test": "jest --config ./jest.config.ts",
-    "preview": "vite preview",
+    "preview": "vite preview --port 4173",
     "cypress": "cypress open",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
@@ -26,8 +26,8 @@
   "homepage": "https://github.com/aehrc/smart-forms#readme",
   "dependencies": {
     "@aehrc/sdc-assemble": "^1.2.0",
-    "@aehrc/sdc-populate": "^2.0.1",
-    "@aehrc/smart-forms-renderer": "^0.29.0",
+    "@aehrc/sdc-populate": "^2.0.3",
+    "@aehrc/smart-forms-renderer": "^0.32.0",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
     "@fontsource/material-icons": "^5.0.16",

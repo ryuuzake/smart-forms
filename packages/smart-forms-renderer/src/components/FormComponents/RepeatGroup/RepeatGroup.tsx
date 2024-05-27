@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import type {
   PropsWithParentIsReadOnlyAttribute,
   PropsWithParentIsRepeatGroupAttribute,
@@ -38,6 +38,7 @@ import cloneDeep from 'lodash.clonedeep';
 import useReadOnly from '../../../hooks/useReadOnly';
 import Typography from '@mui/material/Typography';
 import { useQuestionnaireStore } from '../../../stores';
+import useRepeatGroups from '../../../hooks/useRepeatGroups';
 
 interface RepeatGroupProps
   extends PropsWithQrRepeatGroupChangeHandler,
@@ -49,6 +50,12 @@ interface RepeatGroupProps
   groupCardElevation: number;
 }
 
+/**
+ * Main component to render a repeating, group Questionnaire item.
+ * Store and manages the state of multiple instances of GroupItem in a repeating group.
+ *
+ * @author Sean Fong
+ */
 function RepeatGroup(props: RepeatGroupProps) {
   const {
     qItem,
@@ -65,7 +72,7 @@ function RepeatGroup(props: RepeatGroupProps) {
 
   const initialRepeatGroups = useInitialiseRepeatGroups(qItem, qrItems);
 
-  const [repeatGroups, setRepeatGroups] = useState(initialRepeatGroups);
+  const [repeatGroups, setRepeatGroups] = useRepeatGroups(initialRepeatGroups);
 
   function handleAnswerChange(newQrItem: QuestionnaireResponseItem, index: number) {
     const updatedRepeatGroups = [...repeatGroups];

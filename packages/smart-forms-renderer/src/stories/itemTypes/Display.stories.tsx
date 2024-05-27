@@ -16,16 +16,16 @@
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
-import BuildFormWrapper from '../BuildFormWrapper';
-import { qDisplayBasic } from '../assets/questionnaires/QDisplay';
+import BuildFormWrapperForStorybook from '../storybookWrappers/BuildFormWrapperForStorybook';
+import { qDisplayBasic, qDisplayCalculation } from '../assets/questionnaires/QDisplay';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 const meta = {
   title: 'Component/ItemType/Display',
-  component: BuildFormWrapper,
+  component: BuildFormWrapperForStorybook,
   // This component will have an automatically generated Autodocs entry: https://storybook.js.org/docs/react/writing-docs/autodocs
   tags: []
-} satisfies Meta<typeof BuildFormWrapper>;
+} satisfies Meta<typeof BuildFormWrapperForStorybook>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -35,5 +35,11 @@ type Story = StoryObj<typeof meta>;
 export const DisplayBasic: Story = {
   args: {
     questionnaire: qDisplayBasic
+  }
+};
+
+export const DisplayCalculation: Story = {
+  args: {
+    questionnaire: qDisplayCalculation
   }
 };

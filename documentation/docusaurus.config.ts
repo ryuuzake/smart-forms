@@ -9,10 +9,10 @@ const config: Config = {
   favicon: 'img/logo-sf.svg',
 
   // Set the production url of your site here
-  url: 'https://aehrc.github.io',
+  url: 'https://smartforms.csiro.au',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/smart-forms/',
+  baseUrl: '/docs',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
@@ -20,7 +20,7 @@ const config: Config = {
   projectName: 'smart-forms', // Usually your repo name.\
   trailingSlash: false,
 
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
   onBrokenMarkdownLinks: 'warn',
 
   // Even if you don't use internationalization, you can use this field to set
@@ -36,6 +36,7 @@ const config: Config = {
       'classic',
       {
         docs: {
+          routeBasePath: '/',
           sidebarPath: './sidebars.ts',
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
@@ -85,8 +86,19 @@ const config: Config = {
           label: 'Developer Usage'
         },
         {
+          type: 'docSidebar',
+          sidebarId: 'apiSidebar',
+          position: 'left',
+          label: 'API'
+        },
+        {
           href: 'https://smartforms.csiro.au/ig/',
           label: 'FHIR IG',
+          position: 'right'
+        },
+        {
+          href: 'https://smartforms.csiro.au/storybook/',
+          label: 'Storybook',
           position: 'right'
         },
         {
@@ -142,6 +154,7 @@ const config: Config = {
     }
   } satisfies Preset.ThemeConfig,
 
+  themes: ['@docusaurus/theme-live-codeblock'],
   plugins: [
     () => ({
       name: 'resolve-react',
@@ -155,7 +168,49 @@ const config: Config = {
           }
         };
       }
-    })
+    }),
+    [
+      'docusaurus-plugin-typedoc',
+      // Options
+      {
+        id: 'smart-forms-renderer',
+        entryPoints: '../packages/smart-forms-renderer/src/index.ts',
+        tsconfig: '../packages/smart-forms-renderer/tsconfig.json',
+        out: 'docs/api/smart-forms-renderer',
+        excludeTags: ['@author'],
+        sidebar: {
+          autoConfiguration: true,
+          pretty: true
+        },
+        plugin: ['typedoc-plugin-frontmatter'],
+        indexFormat: 'table',
+        disableSources: true,
+        parametersFormat: 'table',
+        enumMembersFormat: 'table',
+        readme: 'none'
+      }
+    ],
+    [
+      'docusaurus-plugin-typedoc',
+      // Options
+      {
+        id: 'sdc-populate',
+        entryPoints: '../packages/sdc-populate/src/index.ts',
+        tsconfig: '../packages/sdc-populate/tsconfig.json',
+        out: 'docs/api/sdc-populate',
+        excludeTags: ['@author'],
+        sidebar: {
+          autoConfiguration: true,
+          pretty: true
+        },
+        plugin: ['typedoc-plugin-frontmatter'],
+        indexFormat: 'table',
+        disableSources: true,
+        parametersFormat: 'table',
+        enumMembersFormat: 'table',
+        readme: 'none'
+      }
+    ]
   ]
 };
 

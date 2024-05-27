@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-import type { QuestionnaireResponseItem } from 'fhir/r4';
-import type { QuestionnaireItem } from 'fhir/r4';
+import type { QuestionnaireItem, QuestionnaireResponseItem } from 'fhir/r4';
 import { nanoid } from 'nanoid';
 import type { RepeatGroupSingle } from '../interfaces/repeatGroup.interface';
 import { useMemo } from 'react';
@@ -44,9 +43,9 @@ function useInitialiseRepeatGroups(
       }
       return initialRepeatGroupAnswers;
     },
-    // init initialRepeatAnswers on first render only, leave dependency array empty
+    // Requires checking of both qItem and qrItems
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [qItem]
+    [qItem, qrItems]
   );
 }
 
