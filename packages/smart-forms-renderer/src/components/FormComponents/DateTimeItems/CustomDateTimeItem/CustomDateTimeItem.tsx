@@ -130,7 +130,7 @@ function CustomDateTimeItem(props: CustomDateTimeItemProps) {
     }
 
     const { timeIsValid, is24HourNotation } = validateTimeInput(newTimeInput, newPeriodInput);
-    if (!validateDateInput(dateInput) && !timeIsValid) {
+    if (!validateDateInput(dateInput) || !timeIsValid) {
       return;
     }
 
@@ -143,21 +143,25 @@ function CustomDateTimeItem(props: CustomDateTimeItemProps) {
     periodInput: string,
     is24HourNotation: boolean
   ) {
-    let fhirTime = '';
+    let fhirDateTime = '';
     if (timeInput) {
-      fhirTime = parseInputDateTimeToFhirDateTime(
+      fhirDateTime = parseInputDateTimeToFhirDateTime(
         parseInputDateToFhirDate(dateInput),
         timeInput,
         periodInput,
         is24HourNotation
       );
     } else {
-      fhirTime = parseInputDateToFhirDate(dateInput);
+      fhirDateTime = parseInputDateToFhirDate(dateInput);
+    }
+
+    if (fhirDateTime === 'Invalid Date') {
+      return;
     }
 
     onQrItemChange({
       ...createEmptyQrItem(qItem),
-      answer: [{ valueDateTime: fhirTime }]
+      answer: [{ valueDateTime: fhirDateTime }]
     });
   }
 
