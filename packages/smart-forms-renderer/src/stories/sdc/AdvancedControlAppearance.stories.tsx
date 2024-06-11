@@ -17,7 +17,16 @@
 
 import type { Meta, StoryObj } from '@storybook/react';
 import BuildFormWrapperForStorybook from '../storybookWrappers/BuildFormWrapperForStorybook';
-import { qChoiceOrientation, qItemControl, qSliderStepValue } from '../assets/questionnaires';
+import {
+  qChoiceOrientation,
+  qCollapsibleGroupDefaultClosed,
+  qCollapsibleGroupDefaultOpen,
+  qCollapsibleGroupNested,
+  qCollapsibleSingleDefaultClosed,
+  qCollapsibleSingleDefaultOpen,
+  qItemControl,
+  qSliderStepValue
+} from '../assets/questionnaires';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 const meta = {
@@ -47,5 +56,35 @@ export const ChoiceOrientation: Story = {
 export const SliderStepValue: Story = {
   args: {
     questionnaire: qSliderStepValue
+  }
+};
+
+export const CollapsibleSingleDefaultOpen: Story = {
+  args: {
+    questionnaire: qCollapsibleSingleDefaultOpen
+  }
+};
+
+export const CollapsibleSingleDefaultClosed: Story = {
+  args: {
+    questionnaire: qCollapsibleSingleDefaultClosed
+  }
+};
+
+export const CollapsibleGroupDefaultOpen: Story = {
+  args: {
+    questionnaire: qCollapsibleGroupDefaultOpen
+  }
+};
+
+export const CollapsibleGroupDefaultClosed: Story = {
+  args: {
+    questionnaire: qCollapsibleGroupDefaultClosed
+  }
+};
+
+export const CollapsibleGroupNested: Story = {
+  args: {
+    questionnaire: qCollapsibleGroupNested
   }
 };

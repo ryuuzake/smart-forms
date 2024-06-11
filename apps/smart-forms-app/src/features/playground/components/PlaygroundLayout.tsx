@@ -16,7 +16,6 @@
  */
 
 import { StyledRoot } from '../../../components/Layout/Layout.styles.ts';
-import PlaygroundHeader from './PlaygroundHeader.tsx';
 import { PlaygroundMain } from './PlaygroundLayout.styles.tsx';
 import { Outlet } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
@@ -27,7 +26,6 @@ function PlaygroundLayout() {
       <Helmet>
         <title>Playground</title>
       </Helmet>
-      <PlaygroundHeader />
 
       <PlaygroundMain>
         <Outlet />
