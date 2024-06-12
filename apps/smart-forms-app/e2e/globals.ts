@@ -15,16 +15,9 @@
  * limitations under the License.
  */
 
-import { defineConfig } from 'cypress';
+export const PLAYWRIGHT_EHR_URL = 'https://proxy.smartforms.io/v/r4/fhir';
+export const PLAYWRIGHT_FORMS_SERVER_URL = 'https://smartforms.csiro.au/api/fhir';
 
-export default defineConfig({
-  projectId: 'yfvnnr',
-  viewportWidth: 1200,
-  viewportHeight: 660,
-  e2e: {
-    setupNodeEvents(on, config) {
-      // implement node event listeners here
-    }
-  },
-  chromeWebSecurity: false
-});
+export const PLAYWRIGHT_APP_URL = process.env.CI
+  ? 'http://localhost:4173'
+  : 'http://localhost:5173';
