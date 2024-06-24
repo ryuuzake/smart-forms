@@ -548,13 +548,6 @@
               }
             ]
           }
-        },
-        {
-          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression",
-          "valueExpression": {
-            "language": "text/fhirpath",
-            "expression": "%PressureInjuryRepeat.clinicalStatus.coding='active'"
-          }
         }
       ],
       "item": [
@@ -1081,13 +1074,6 @@
                 "system": "http://hl7.org/fhir/questionnaire-item-control"
               }
             ]
-          }
-        },
-        {
-          "url": "http://hl7.org/fhir/uv/sdc/StructureDefinition/sdc-questionnaire-initialExpression",
-          "valueExpression": {
-            "language": "text/fhirpath",
-            "expression": "%IADRepeat.clinicalStatus.coding='active'"
           }
         }
       ],
